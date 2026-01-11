@@ -1,16 +1,151 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import { setupAuth } from "./auth";
 import { storage } from "./storage";
+import { api } from "@shared/routes";
+import { z } from "zod";
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-  // put application routes here
-  // prefix all routes with /api
+  // Setup Authentication (Passport)
+  setupAuth(app);
 
-  // use storage to perform CRUD operations on the storage interface
-  // e.g. storage.insertUser(user) or storage.getUserByUsername(username)
+  // Products
+  app.get(api.products.list.path, async (req, res) => {
+    const products = await storage.getProducts();
+    res.json(products);
+  });
+
+  app.get(api.products.get.path, async (req, res) => {
+    const product = await storage.getProduct(Number(req.params.id));
+    if (!product) return res.status(404).json({ message: "Product not found" });
+    res.json(product);
+  });
+
+  app.post(api.products.create.path, async (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    try {
+      const input = api.products.create.input.parse(req.body);
+      const product = await storage.createProduct(input);
+      res.status(201).json(product);
+    } catch (e) {
+      if (e instanceof z.ZodError) res.status(400).json(e.errors);
+      else throw e;
+    }
+  });
+
+  app.put(api.products.update.path, async (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    try {
+      const input = api.products.update.input.parse(req.body);
+      const product = await storage.updateProduct(Number(req.params.id), input);
+      res.json(product);
+    } catch (e) {
+      if (e instanceof z.ZodError) res.status(400).json(e.errors);
+      else throw e;
+    }
+  });
+
+  // Orders
+  app.get(api.orders.list.path, async (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    
+    // If admin/accounting, show all. If staff, show own.
+    const user = req.user as any;
+    if (user.role === 'admin' || user.role === 'accounting') {
+      const orders = await storage.getOrders();
+      res.json(orders);
+    } else {
+      const orders = await storage.getOrdersByUser(user.id);
+      res.json(orders);
+    }
+  });
+
+  app.get(api.orders.get.path, async (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    const order = await storage.getOrder(Number(req.params.id));
+    if (!order) return res.status(404).json({ message: "Order not found" });
+    res.json(order);
+  });
+
+  app.post(api.orders.create.path, async (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    try {
+      const input = api.orders.create.input.parse(req.body);
+      // Force createdBy to current user
+      const order = await storage.createOrder({ 
+        ...input, 
+        createdBy: (req.user as any).id,
+        items: input.items || [],
+        total: input.total || "0" 
+      });
+      res.status(201).json(order);
+    } catch (e) {
+      if (e instanceof z.ZodError) res.status(400).json(e.errors);
+      else throw e;
+    }
+  });
+
+  app.put(api.orders.update.path, async (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    try {
+      const input = api.orders.update.input.parse(req.body);
+      const order = await storage.updateOrder(Number(req.params.id), input);
+      res.json(order);
+    } catch (e) {
+      if (e instanceof z.ZodError) res.status(400).json(e.errors);
+      else throw e;
+    }
+  });
+
+  // Categories
+  app.get(api.categories.list.path, async (req, res) => {
+    const categories = await storage.getCategories();
+    res.json(categories);
+  });
+
+  // Seed Database (async, don't await strictly to not block startup if slow, or await if fast)
+  seedDatabase().catch(err => console.error("Error seeding database:", err));
 
   return httpServer;
+}
+
+// Seed function
+export async function seedDatabase() {
+  const existingUsers = await storage.getUserByUsername("admin");
+  if (!existingUsers) {
+    console.log("Seeding database...");
+    await storage.createUser({ 
+      username: "admin", 
+      password: "admin", // In real app, hash this!
+      role: "admin", 
+      name: "Admin User" 
+    });
+    await storage.createUser({ 
+      username: "staff", 
+      password: "staff", 
+      role: "staff", 
+      name: "Staff User" 
+    });
+    
+    // Seed Products
+    await storage.createProduct({
+      name: "Anti-Aging Serum",
+      description: "Premium gold-infused serum",
+      price: "1500.00",
+      categoryId: 1,
+      images: ["https://placehold.co/600x400/171A1D/D4B16A?text=Serum"],
+      stock: 100
+    });
+    await storage.createProduct({
+      name: "Hydrating Cream",
+      description: "Deep moisture lock",
+      price: "950.00",
+      categoryId: 1,
+      images: ["https://placehold.co/600x400/171A1D/D4B16A?text=Cream"],
+      stock: 50
+    });
+  }
 }

@@ -1,18 +1,106 @@
-import { sql } from "drizzle-orm";
-import { pgTable, text, varchar } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, jsonb, decimal } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// === TABLE DEFINITIONS ===
+
 export const users = pgTable("users", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
+  role: text("role", { enum: ["admin", "staff", "accounting"] }).notNull().default("staff"),
+  name: text("name").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
+export const categories = pgTable("categories", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  colorTag: text("color_tag").notNull(), // Hex code for UI
 });
 
-export type InsertUser = z.infer<typeof insertUserSchema>;
+export const products = pgTable("products", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  price: decimal("price").notNull(), // Stored as string in JS, numeric in DB
+  categoryId: integer("category_id").references(() => categories.id),
+  images: jsonb("images").$type<string[]>().default([]), // Array of image URLs
+  stock: integer("stock").default(0),
+  isEnabled: boolean("is_enabled").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const promotions = pgTable("promotions", {
+  id: serial("id").primaryKey(),
+  code: text("code").notNull().unique(),
+  type: text("type", { enum: ["PERCENT_OFF", "FIXED_OFF", "buy_x_get_y"] }).notNull(),
+  value: decimal("value"), // For percent or fixed amount
+  details: text("details"),
+  isActive: boolean("is_active").default(true),
+});
+
+export const orders = pgTable("orders", {
+  id: serial("id").primaryKey(),
+  orderNo: text("order_no").notNull().unique(), // Generated unique string
+  status: text("status", { enum: ["draft", "submitted", "verified", "cancelled"] }).default("draft"),
+  items: jsonb("items").$type<{
+    productId: number;
+    name: string;
+    quantity: number;
+    price: number;
+  }[]>().notNull(),
+  total: decimal("total").notNull(),
+  customerInfo: jsonb("customer_info").$type<{
+    doctorName?: string;
+    doctorId?: string;
+    address?: string;
+  }>(),
+  attachments: jsonb("attachments").$type<{
+    type: 'id_card' | 'payment_slip' | 'other';
+    url: string;
+  }[]>().default([]),
+  createdBy: integer("created_by").references(() => users.id),
+  verifiedBy: integer("verified_by").references(() => users.id),
+  verifiedAt: timestamp("verified_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// === SCHEMAS ===
+
+export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
+export const insertCategorySchema = createInsertSchema(categories).omit({ id: true });
+export const insertProductSchema = createInsertSchema(products).omit({ id: true, createdAt: true });
+export const insertPromotionSchema = createInsertSchema(promotions).omit({ id: true });
+export const insertOrderSchema = createInsertSchema(orders).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true, 
+  verifiedAt: true, 
+  verifiedBy: true,
+  orderNo: true // Backend generates this
+});
+
+// === TYPES ===
+
 export type User = typeof users.$inferSelect;
+export type InsertUser = z.infer<typeof insertUserSchema>;
+
+export type Product = typeof products.$inferSelect;
+export type InsertProduct = z.infer<typeof insertProductSchema>;
+
+export type Category = typeof categories.$inferSelect;
+export type InsertCategory = z.infer<typeof insertCategorySchema>;
+
+export type Promotion = typeof promotions.$inferSelect;
+export type InsertPromotion = z.infer<typeof insertPromotionSchema>;
+
+export type Order = typeof orders.$inferSelect;
+export type InsertOrder = z.infer<typeof insertOrderSchema>;
+
+// API Request Types
+export type CreateProductRequest = InsertProduct;
+export type UpdateProductRequest = Partial<InsertProduct>;
+export type CreateOrderRequest = InsertOrder;
+export type UpdateOrderRequest = Partial<InsertOrder> & { status?: string }; // Allow status updates
