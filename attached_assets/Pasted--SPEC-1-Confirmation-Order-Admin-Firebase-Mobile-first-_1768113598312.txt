@@ -1,0 +1,181 @@
+# SPEC-1-Confirmation Order + Admin — Firebase + Mobile‑first Pastel UI 
+ 
+## Background 
+ 
+A lightweight mobile‑first web app is needed to streamline a clinic/sales workflow for “Confirmation Order Forms.” Staff should be able to draft orders on their phones, attach doctor ID and payment slips, and submit for verification. Admins need fast tools to manage products, images, pricing, promotions, and user roles. The UI should feel instant and friendly on mid‑range phones: pastel theme (mint/peach/lavender), lazy‑loaded routes, offline cache, and responsive lists with thumbnails. Firestore will store entities (users, categories, products, promotions, orders, audit logs) with server timestamps; Cloud Storage will handle attachments and product images with client‑side compression and upload progress. Cloud Functions will enforce key transitions (submit, status changes, role/claims) and append audit trails. The MVP must be implementable by contractors and scalable to higher order volumes via pagination, startAfter cursors, and image thumbnails. 
+ 
+## Requirements 
+ 
+### MoSCoW Prioritization 
+ 
+**Must Have** 
+ 
+* **Auth**: Firebase Auth (Email/Password only). Enforce password complexity: upper+lower+digit, **min length 8**; session persistence; admin/accounting require verified email. All Firebase services deployed in region **asia-southeast1 (Singapore)**. 
+* **Roles & Permissions**: `admin`, `staff`, accounting with rules: client cannot write `orderNo`, `verifiedBy`, `verifiedAt`, `statusHistory`; staff can edit only own drafts and only allowed fields; products/promotions readable by all, writable admin only. 
+* **Data Models (Firestore)**: `users`, `categories`, products (full spec incl. pricing, images, inventory flags), promotions (types: PERCENT_OFF, FIXED_OFF, BUNDLE_BUY_X_GET_Y, BUY_X_FOR_PRICE, GIFT_WITH_PURCHASE, MANUAL_TEXT), orders (doctor/shipping, items array, snapshots, attachments, system fields), `auditLogs`. All docs include createdAt/updatedAt server timestamps. 
+* **Storage**: Paths for order attachments & product images; client‑side image compression (≤1600px, ~0.75 quality) and upload progress UI. 
+* **Backend (Cloud Functions)**: `submitOrder`, `setOrderStatus`, setUserRole with validations, status transitions, custom claims, and history append. 
+* **UI/UX (Mobile‑first, **KeyAesthetics-inspired dark theme**)**: 
+ 
+  * **Mode**: Dark mode **default** for all screens; **no Light mode in MVP**. 
+  * Theme tokens (proposed): 
+ 
+    * BG `#0F1012`, Card `#171A1D`, Text `#FFFFFF`, Muted #A4ACB3 
+    * Primary (Gold) `#D4B16A`, Primary-Soft #F0E6D1 
+    * Secondary (Charcoal) `#2A2E32`, Accent #8BA6B0 (cool gray‑blue) 
+    * Border `#2A2F33`, Focus #E9D8A6 
+    * **Gold separators** (1px) for headers/tabs/dividers and **button outlines** where applicable 
+    * Radius 18–22px, button height 48px 
+  * Routes `/login`, staff & admin screens; every data‑loading page shows route top bar + skeleton + spinner + upload progress; empty/error states with retry. 
+* **Performance**: Lazy routes + code‑split; list pagination (orders limit 20 with `startAfter`); product list uses thumbUrl and lazy images; avoid heavy files in lists; Firestore offline persistence; system fonts for MVP. 
+* **Validation (Order Form)**: Field constraints for doctor details, address, promoText, totals > 0, attachments (jpg/png/pdf ≤10MB). 
+* **Definition of Done**: Staff flow (draft → autosave → upload 2 files → submit → receive `orderNo`); Admin flow (view all → view attachments → mark verified → backend sets `verifiedBy/verifiedAt`); Admin CRUD products/promotions/users; loading animations present; pagination smooth. 
+* **Security Rules**: Firestore/Storage rules enforcing roles, field‑level immutability (server‑only fields), and ownership on drafts/attachments. 
+ 
+**Should Have** 
+ 
+* Categories for organization with `colorTag`. 
+* Image subcollection for products with `thumbUrl`, `isCover`, `sortOrder`. 
+* Audit logs for all major actions. 
+* Accounting role can view all orders and mark `verified`. 
+ 
+**Could Have** 
+ 
+* Inventory toggles (`trackStock`, `stockOnHand`) for future. 
+* More promo rule templates & priority/stacking nuances. 
+* Offline draft autosave with background sync. 
+ 
+**Won’t (for MVP)** 
+ 
+* Payment gateway integration. 
+* Multi‑tenant organizations. 
+* Phone/SMS or social login providers. 
+ 
+## Method 
+ 
+### Architecture Overview (Part 1) 
+ 
+* **Client**: React (19.x) + Vite (7.x) + TypeScript + React Router (v7) + TanStack Query (v5) + Tailwind CSS (v4). PWA-enabled (offline cache for Firestore, image lazy-load, route-based code split). 
+* **Backend**: Firebase Auth (Email/Password), Firestore, Cloud Storage, Cloud Functions **2nd‑gen** (Callable HTTPS + background), Firebase Hosting. All in **asia‑southeast1**. 
+* **Data loading pattern**: lists via Firestore queries with limit(20) + `startAfter(cursor)`; detail pages fetch doc + related subcollections on‑demand; images use thumbUrl in lists and load full only in detail. 
+* **UI feedback**: route top bar loader, list skeleton (cards/table), per‑action spinner, upload progress (percent + ETA). 
+* **Perf**: code split by route, prefetch next route on idle, responsive images (`srcset`), Firestore persistence + indexedDB; system font stack. 
+ 
+#### Component Diagram (PlantUML) 
+ 
+plantuml 
+@startuml 
+skinparam linetype ortho 
+skinparam componentStyle rectangle 
+actor Staff as Staff 
+actor Admin as Admin 
+rectangle "Web App (React)" as Web { 
+  [Router (/login,/orders,...)] 
+  [Order Form + Stepper] 
+  [Admin Console] 
+  [Query Cache (TanStack Query)] 
+  [Offline Persistence] 
+} 
+package Firebase { 
+  [Auth] 
+  [Firestore] 
+  [Storage] 
+  [Functions (Gen2)] 
+  [Hosting/CDN] 
+} 
+Staff --> Web 
+Admin --> Web 
+Web --> Auth : signIn / token 
+Web --> Firestore : read/write (rules) 
+Web --> Storage : uploads (resumable) 
+Web --> Functions : call submitOrder/setOrderStatus/setUserRole 
+Functions --> Firestore : server validations + history 
+Functions --> Storage : signed URLs / metadata 
+@enduml 
+ 
+ 
+### Tech Stack & Versions (locked for MVP) 
+ 
+* **React 19.x**, **React Router v7**, **Vite 7.x (Node 18+ / 20+)**, **Tailwind CSS v4.x**, **@tanstack/react-query v5.x**, **Firebase JS SDK v11.x**. 
+* **Node runtime** for Functions: node20 (Gen2), with ESM modules. 
+ 
+### PWA & Offline 
+ 
+* **Installable**: add manifest.webmanifest (name, short_name, theme_color `#0F1012`, background_color `#0F1012`, icons 192/512). Link in `index.html`. 
+* **Service Worker (minimal)**: cache **static assets only** (Vite build output) using workbox-precaching or a hand-rolled self.__WB_MANIFEST fallback. Bypass network for Firestore/Functions; rely on Firestore SDK offline persistence for data. 
+* **Offline behavior**: order **drafts** editable offline → queue writes; block **submit** when offline (show toast). Thumbnails use HTTP cache; lists show skeletons; failed image loads retry with exponential backoff. 
+* **Performance**: `loading="lazy"`, `srcset/sizes`, intersection observers for infinite list. 
+ 
+**Files to add** 
+ 
+* public/manifest.webmanifest 
+* src/sw.ts (registered when `import.meta.env.PROD`) 
+* src/pwa/registerSW.ts guard with update prompt modal 
+ 
+**Sample sw.ts (sketch)** 
+ 
+ts 
+self.addEventListener('install', () => self.skipWaiting()); 
+self.addEventListener('activate', (e:any) => e.waitUntil(self.clients.claim())); 
+// Optional: Workbox injectManifest in build step for static precache only 
+ 
+ 
+### CI/CD (GitHub Actions → Firebase Hosting & Functions Gen2) 
+ 
+* **Environment**: Single Firebase project (prod) in `asia-southeast1`. 
+* **Secrets required**: FIREBASE_SERVICE_ACCOUNT (JSON), `PROJECT_ID`, optional SENTRY_DSN later. 
+ 
+**Workflow file**: .github/workflows/deploy.yml 
+ 
+yaml 
+name: CI 
+on: 
+  push: 
+    branches: [ main ] 
+permissions: 
+  contents: read 
+jobs: 
+  build-and-deploy: 
+    runs-on: ubuntu-latest 
+    steps: 
+      - uses: actions/checkout@v4 
+      - uses: actions/setup-node@v4 
+        with: { node-version: 20 } 
+      - run: npm ci 
+      - run: npm run -w web build 
+      - run: npm run -w functions build 
+      - name: Firebase Deploy (Hosting) 
+        uses: FirebaseExtended/action-hosting-deploy@v0 
+        with: 
+          repoToken: ${{ secrets.GITHUB_TOKEN }} 
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }} 
+          channelId: live 
+          projectId: ${{ secrets.PROJECT_ID }} 
+          target: hosting 
+      - name: Deploy Functions (Gen2) 
+        run: | 
+          npm i -g firebase-tools 
+          firebase deploy --only functions --project ${{ secrets.PROJECT_ID }} --force 
+ 
+ 
+**MVP Decision: SPA** 
+ 
+* ใช้ **SPA ล้วน** (ไม่มี SSR) เพราะเป็นระบบภายใน ไม่ต้อง SEO, ลด cold start และความซับซ้อน 
+* โครงสร้างโค้ด (routes/components/state) ออกแบบให้ **ย้ายเป็น SSR/Next.js ภายหลังได้** โดยไม่เปลี่ยน Firestore/Functions 
+ 
+**ทางเลือกเมื่อขยายตัว** 
+ 
+* ย้ายไป **Next.js** บน Firebase Hosting/Cloud Run พร้อม React Server Components (RSC) สำหรับหน้าที่ต้อง prefetch หนัก ๆ 
+* Public: /login → redirect by role. 
+* Staff: `/` summary, /orders (paginated), /orders/new (3‑step with autosave), /orders/:id detail. 
+* Admin: `/admin`, `/admin/orders`, `/admin/orders/:id`, `/admin/products`, `/admin/products/:id`, `/admin/promotions`, `/admin/users`. 
+* Guard rules: admin & accounting can view all orders; staff sees only `createdBy == auth.uid`; drafts editable by owner only. 
+ 
+### Security Rules (overview) 
+ 
+* **Firestore**: server-only fields (`orderNo`, `verifiedBy`, `verifiedAt`, `statusHistory`) are write‑protected; orders create/edit constrained to owner & status; products/promotions read‑all, write‑admin. 
+* **Storage**: uploads constrained to orders/{orderId}/(doctor-id|payment-slip).* where order.createdBy == auth.uid and order status is `draft|submitted`. 
+ 
+### Indexes (initial) 
+ 
+* `orders`: composite on `(createdBy
