@@ -13,6 +13,7 @@ import Orders from "@/pages/Orders";
 import CreateOrder from "@/pages/CreateOrder";
 import OrderDetail from "@/pages/OrderDetail";
 import Products from "@/pages/Products";
+import Settings from "@/pages/Settings";
 import NotFound from "@/pages/not-found";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
@@ -57,6 +58,9 @@ function Router() {
       </Route>
       <Route path="/products">
         <ProtectedRoute component={Products} />
+      </Route>
+      <Route path="/settings">
+        <ProtectedRoute component={Settings} />
       </Route>
 
       <Route component={NotFound} />
