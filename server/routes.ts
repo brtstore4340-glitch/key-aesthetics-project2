@@ -92,7 +92,7 @@ export async function registerRoutes(
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
     try {
       const input = api.orders.update.input.parse(req.body);
-      const order = await storage.updateOrder(Number(req.params.id), input);
+      const order = await storage.updateOrder(Number(req.params.id), input as any);
       res.json(order);
     } catch (e) {
       if (e instanceof z.ZodError) res.status(400).json(e.errors);

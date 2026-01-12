@@ -243,7 +243,7 @@ export default function Settings() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {usersList?.map((u: any) => (
+                    {Array.isArray(usersList) && usersList.map((u: any) => (
                       <div key={u.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/20 border border-border/40">
                         <div>
                           <p className="font-medium">{u.name}</p>

@@ -16,8 +16,10 @@ const PostgresSessionStore = connectPg(session);
 export interface IStorage {
   // Auth & Users
   getUser(id: number): Promise<User | undefined>;
+  getUsers(): Promise<User[]>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  deleteUser(id: number): Promise<void>;
   
   // Products
   getProducts(): Promise<Product[]>;
@@ -53,6 +55,10 @@ export class DatabaseStorage implements IStorage {
   async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
+  }
+
+  async getUsers(): Promise<User[]> {
+    return await db.select().from(users).orderBy(desc(users.createdAt));
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
