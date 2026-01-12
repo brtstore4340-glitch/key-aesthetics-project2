@@ -100,6 +100,37 @@ export async function registerRoutes(
     }
   });
 
+  // Users (Admin only)
+  app.get(api.users.list.path, async (req, res) => {
+    if (!req.isAuthenticated() || (req.user as any).role !== 'admin') {
+      return res.status(403).send("Forbidden");
+    }
+    const users = await storage.getUsers();
+    res.json(users);
+  });
+
+  app.post(api.users.create.path, async (req, res) => {
+    if (!req.isAuthenticated() || (req.user as any).role !== 'admin') {
+      return res.status(403).send("Forbidden");
+    }
+    try {
+      const input = api.users.create.input.parse(req.body);
+      const user = await storage.createUser(input);
+      res.status(201).json(user);
+    } catch (e) {
+      if (e instanceof z.ZodError) res.status(400).json(e.errors);
+      else throw e;
+    }
+  });
+
+  app.delete(api.users.delete.path, async (req, res) => {
+    if (!req.isAuthenticated() || (req.user as any).role !== 'admin') {
+      return res.status(403).send("Forbidden");
+    }
+    await storage.deleteUser(Number(req.params.id));
+    res.sendStatus(200);
+  });
+
   // Categories
   app.get(api.categories.list.path, async (req, res) => {
     const categories = await storage.getCategories();
@@ -114,20 +145,26 @@ export async function registerRoutes(
 
 // Seed function
 export async function seedDatabase() {
-  const existingUsers = await storage.getUserByUsername("admin");
-  if (!existingUsers) {
+  const admin = await storage.getUserByUsername("admin");
+  if (!admin) {
     console.log("Seeding database...");
     await storage.createUser({ 
       username: "admin", 
-      password: "admin", // In real app, hash this!
+      pin: "1111", 
       role: "admin", 
       name: "Admin User" 
     });
     await storage.createUser({ 
       username: "staff", 
-      password: "staff", 
+      pin: "2222", 
       role: "staff", 
       name: "Staff User" 
+    });
+    await storage.createUser({ 
+      username: "account", 
+      pin: "3333", 
+      role: "accounting", 
+      name: "Accounting User" 
     });
     
     // Seed Products

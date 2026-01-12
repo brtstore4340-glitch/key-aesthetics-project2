@@ -28,9 +28,9 @@ export function setupAuth(app: Express) {
   app.use(passport.session());
 
   passport.use(
-    new LocalStrategy(async (username, password, done) => {
+    new LocalStrategy(async (username, pin, done) => {
       const user = await storage.getUserByUsername(username);
-      if (!user || user.password !== password) {
+      if (!user || user.pin !== pin) {
         return done(null, false);
       } else {
         return done(null, user);

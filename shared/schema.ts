@@ -7,7 +7,7 @@ import { z } from "zod";
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
-  password: text("password").notNull(),
+  pin: text("pin").notNull(),
   role: text("role", { enum: ["admin", "staff", "accounting"] }).notNull().default("staff"),
   name: text("name").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
@@ -69,7 +69,9 @@ export const orders = pgTable("orders", {
 
 // === SCHEMAS ===
 
-export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
+export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true }).extend({
+  pin: z.string().length(4, "PIN must be exactly 4 digits").regex(/^\d+$/, "PIN must contain only digits")
+});
 export const insertCategorySchema = createInsertSchema(categories).omit({ id: true });
 export const insertProductSchema = createInsertSchema(products).omit({ id: true, createdAt: true });
 export const insertPromotionSchema = createInsertSchema(promotions).omit({ id: true });

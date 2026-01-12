@@ -36,7 +36,7 @@ export const api = {
     login: {
       method: 'POST' as const,
       path: '/api/login',
-      input: z.object({ username: z.string(), password: z.string() }),
+      input: z.object({ username: z.string(), password: z.string().optional(), pin: z.string().optional() }),
       responses: {
         200: z.custom<typeof users.$inferSelect>(),
         401: errorSchemas.unauthorized,
@@ -66,6 +66,23 @@ export const api = {
       path: '/api/users',
       responses: {
         200: z.array(z.custom<typeof users.$inferSelect>()),
+      },
+    },
+    create: {
+      method: 'POST' as const,
+      path: '/api/users',
+      input: insertUserSchema,
+      responses: {
+        201: z.custom<typeof users.$inferSelect>(),
+        400: errorSchemas.validation,
+      },
+    },
+    delete: {
+      method: 'DELETE' as const,
+      path: '/api/users/:id',
+      responses: {
+        200: z.void(),
+        404: errorSchemas.notFound,
       },
     },
   },
