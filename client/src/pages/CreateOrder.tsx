@@ -94,9 +94,9 @@ export default function CreateOrder() {
   if (isLoading) return <div className="flex justify-center p-12"><Loader2 className="animate-spin text-primary" /></div>;
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[calc(100vh-120px)] overflow-hidden">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[calc(100vh-120px)] overflow-hidden min-h-0">
       {/* Product Selection Column */}
-      <div className="lg:col-span-8 flex flex-col h-full space-y-4">
+      <div className="lg:col-span-8 flex flex-col h-full space-y-4 min-h-0">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-display font-bold tracking-tight">Product Selection</h1>
@@ -140,7 +140,7 @@ export default function CreateOrder() {
           ))}
         </div>
         
-        <div className="flex-1 overflow-y-auto pr-2 no-scrollbar">
+        <div className="flex-1 overflow-y-auto pr-2 no-scrollbar min-h-0">
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
             {filteredProducts?.map(product => {
               const cartItem = cart.find(item => item.productId === product.id);
@@ -215,7 +215,7 @@ export default function CreateOrder() {
       </div>
 
       {/* Order Summary Column */}
-      <div className="lg:col-span-4 bg-card border border-border/40 rounded-3xl shadow-2xl flex flex-col h-full overflow-hidden relative">
+      <div className="lg:col-span-4 bg-card border border-border/40 rounded-3xl shadow-2xl flex flex-col h-full overflow-hidden relative min-h-0">
         <div className="p-6 border-b border-border/40 bg-secondary/10 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-primary/10 rounded-xl">
