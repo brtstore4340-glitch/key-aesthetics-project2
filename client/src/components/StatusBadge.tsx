@@ -14,11 +14,11 @@ export function StatusBadge({ status }: StatusBadgeProps) {
   };
   
   const labels = {
-    draft: "Draft",
-    submitted: "Submitted",
-    verified: "Verified",
-    cancelled: "Cancelled",
-    pending: "Pending"
+    draft: "บันทึก",
+    submitted: "สั่งซื้อ",
+    verified: "กำลังจัด",
+    cancelled: "ยกเลิก",
+    pending: "รอดำเนินการ"
   };
 
   const styleClass = styles[normalized as keyof typeof styles] || styles.draft;

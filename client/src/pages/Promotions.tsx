@@ -10,6 +10,7 @@ import { Loader2, Plus, Trash2, Tag, Gift } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
@@ -177,7 +178,13 @@ export default function Promotions() {
                     <Gift className="w-6 h-6" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-bold truncate">{promo.name}</h3>
+                    <div className="flex items-center gap-2">
+                      <Badge className="h-5 px-2 text-[10px] font-semibold uppercase tracking-wide bg-primary/10 text-primary border border-primary/20">
+                        <Gift className="w-3 h-3 mr-1" />
+                        Promo
+                      </Badge>
+                      <h3 className="font-bold truncate">{promo.name}</h3>
+                    </div>
                     <p className="text-xs text-muted-foreground">
                       {products?.find(p => p.id === promo.productId)?.name || "Unknown Product"} • {promo.withdrawAmount} Units
                     </p>
