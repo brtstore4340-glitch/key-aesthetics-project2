@@ -229,5 +229,3 @@ export function buildUrl(path: string, params?: Record<string, string | number>)
 
 // === TYPES ===
 export type LoginInput = z.infer<typeof api.auth.login.input>;
-export type ProductResponse = z.infer<typeof api.products.get.responses[200]>;
-export type OrderResponse = z.infer<typeof api.orders.get.responses[200]>;

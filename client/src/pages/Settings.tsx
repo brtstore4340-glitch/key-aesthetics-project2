@@ -1,9 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/use-auth";
-import { Settings as SettingsIcon, User, Shield, Bell, Save, UserPlus, Trash2, ShieldCheck } from "lucide-react";
+import { Settings as SettingsIcon, User, Shield, Save, UserPlus, Trash2, ShieldCheck } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";

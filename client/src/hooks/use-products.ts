@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api, buildUrl, type CreateProductRequest } from "@shared/routes";
+import { api, type CreateProductRequest } from "@shared/routes";
 
 export function useProducts() {
   return useQuery({
@@ -9,19 +9,6 @@ export function useProducts() {
       if (!res.ok) throw new Error("Failed to fetch products");
       return api.products.list.responses[200].parse(await res.json());
     },
-  });
-}
-
-export function useProduct(id: number) {
-  return useQuery({
-    queryKey: [api.products.get.path, id],
-    queryFn: async () => {
-      const url = buildUrl(api.products.get.path, { id });
-      const res = await fetch(url, { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to fetch product");
-      return api.products.get.responses[200].parse(await res.json());
-    },
-    enabled: !!id,
   });
 }
 
