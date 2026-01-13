@@ -1,22 +1,92 @@
 import { useProducts, useCategories } from "@/hooks/use-products";
-import { Loader2, Plus } from "lucide-react";
+import { Loader2, Plus, Upload, FileDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import * as XLSX from "xlsx";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { api } from "@shared/routes";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function Products() {
   const { data: products, isLoading } = useProducts();
   const { data: categories } = useCategories();
+  const { toast } = useToast();
+  const { user } = useAuth();
+
+  const handleExportTemplate = () => {
+    const ws = XLSX.utils.json_to_sheet([
+      { "Product Name": "Example Product", "Normal Price": "100.00", "Pic (001.jpg)": "image_url_here", "Unit": "10" }
+    ]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Template");
+    XLSX.writeFile(wb, "product_template.xlsx");
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const data = new Uint8Array(event.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: "array" });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const json = XLSX.utils.sheet_to_json(worksheet) as any[];
+
+        const formattedProducts = json.map(row => ({
+          name: String(row["Product Name"]),
+          price: String(row["Normal Price"]),
+          images: row["Pic (001.jpg)"] ? [String(row["Pic (001.jpg)"])] : [],
+          stock: parseInt(String(row["Unit"])) || 0,
+          categoryId: categories?.[0]?.id || null, // Default to first category
+          description: ""
+        }));
+
+        await apiRequest("POST", api.products.batchCreate.path, formattedProducts);
+        queryClient.invalidateQueries({ queryKey: [api.products.list.path] });
+        toast({ title: "Success", description: `Uploaded ${formattedProducts.length} products` });
+      } catch (err: any) {
+        toast({ title: "Upload Failed", description: err.message, variant: "destructive" });
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  };
 
   if (isLoading) return <div className="flex justify-center p-12"><Loader2 className="animate-spin text-primary" /></div>;
 
   return (
     <div className="space-y-8">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-display font-bold">Products</h1>
           <p className="text-muted-foreground">Manage your inventory catalog</p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-secondary text-foreground rounded-lg hover:bg-secondary/80 transition-colors">
-          <Plus className="w-4 h-4" /> Add Product
-        </button>
+        <div className="flex items-center gap-2">
+          {user?.role === 'admin' && (
+            <>
+              <Button variant="outline" size="sm" onClick={handleExportTemplate} className="gap-2">
+                <FileDown className="w-4 h-4" /> Template
+              </Button>
+              <div className="relative">
+                <input
+                  type="file"
+                  accept=".xlsx, .xls"
+                  onChange={handleFileUpload}
+                  className="absolute inset-0 opacity-0 cursor-pointer"
+                  title="Upload Excel"
+                />
+                <Button variant="outline" size="sm" className="gap-2 pointer-events-none">
+                  <Upload className="w-4 h-4" /> Batch Upload
+                </Button>
+              </div>
+            </>
+          )}
+          <Button size="sm" className="gap-2">
+            <Plus className="w-4 h-4" /> Add Product
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">

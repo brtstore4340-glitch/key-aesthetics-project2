@@ -122,6 +122,15 @@ export const api = {
         404: errorSchemas.notFound,
       },
     },
+    batchCreate: {
+      method: 'POST' as const,
+      path: '/api/products/batch',
+      input: z.array(insertProductSchema),
+      responses: {
+        201: z.array(z.custom<typeof products.$inferSelect>()),
+        400: errorSchemas.validation,
+      },
+    },
   },
 
   // Categories

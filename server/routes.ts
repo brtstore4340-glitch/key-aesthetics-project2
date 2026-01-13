@@ -48,6 +48,20 @@ export async function registerRoutes(
     }
   });
 
+  app.post(api.products.batchCreate.path, async (req, res) => {
+    if (!req.isAuthenticated() || (req.user as any).role !== 'admin') {
+      return res.status(403).send("Forbidden");
+    }
+    try {
+      const input = api.products.batchCreate.input.parse(req.body);
+      const products = await Promise.all(input.map(p => storage.createProduct(p)));
+      res.status(201).json(products);
+    } catch (e) {
+      if (e instanceof z.ZodError) res.status(400).json(e.errors);
+      else throw e;
+    }
+  });
+
   // Orders
   app.get(api.orders.list.path, async (req, res) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
