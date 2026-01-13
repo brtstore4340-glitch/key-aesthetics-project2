@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertPromotionSchema, type Product } from "@shared/schema";
+import { insertPromotionSchema, type Product, type Promotion } from "@shared/schema";
 import { Loader2, Plus, Trash2, Tag, Gift } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,7 @@ export default function Promotions() {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const { data: promotions, isLoading: isLoadingPromos } = useQuery({
+  const { data: promotions, isLoading: isLoadingPromos } = useQuery<Promotion[]>({
     queryKey: [api.promotions.list.path],
     enabled: user?.role === "admin",
   });
@@ -30,7 +30,7 @@ export default function Promotions() {
     resolver: zodResolver(insertPromotionSchema),
     defaultValues: {
       name: "",
-      productId: undefined,
+      productId: undefined as unknown as number,
       withdrawAmount: 0,
     }
   });
@@ -113,7 +113,7 @@ export default function Promotions() {
                       <FormLabel>Select Product</FormLabel>
                       <Select 
                         onValueChange={(val) => field.onChange(parseInt(val))} 
-                        value={field.value?.toString()}
+                        value={field.value?.toString() || ""}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -163,12 +163,12 @@ export default function Promotions() {
           <h2 className="text-xl font-display font-bold flex items-center gap-2">
             <Tag className="w-5 h-5 text-primary" /> Active Promotions
           </h2>
-          {promotions?.length === 0 ? (
+          {(!promotions || promotions.length === 0) ? (
             <div className="p-8 text-center bg-secondary/10 rounded-2xl border border-dashed border-border/40">
               <p className="text-muted-foreground">No promotions found.</p>
             </div>
           ) : (
-            promotions?.map((promo) => (
+            promotions.map((promo: Promotion) => (
               <Card key={promo.id} className="border-border/40 overflow-hidden group hover:border-primary/50 transition-all">
                 <div className="flex items-center gap-4 p-4">
                   <div className="p-3 rounded-xl bg-primary/10 text-primary">
