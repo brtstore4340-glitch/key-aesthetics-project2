@@ -9,7 +9,8 @@ import {
   PlusCircle,
   Menu,
   X,
-  Gift
+  Gift,
+  BarChart3
 } from "lucide-react";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -33,6 +34,7 @@ export function Sidebar() {
         { href: "/orders", label: "Orders", icon: FileText },
         { href: "/products", label: "Products", icon: ShoppingBag },
         { href: "/promotions", label: "Promotions", icon: Gift },
+        { href: "/summary", label: "Summary", icon: BarChart3 },
         { href: "/settings", label: "Settings", icon: Settings },
       ];
     }
@@ -49,6 +51,7 @@ export function Sidebar() {
       return [
         ...baseLinks,
         { href: "/orders", label: "Packing & Shipping", icon: FileText },
+        { href: "/summary", label: "Summary", icon: BarChart3 },
       ];
     }
 
