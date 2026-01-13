@@ -5,6 +5,7 @@ import { Loader2, ArrowLeft, CheckCircle2, Clock, XCircle, Download } from "luci
 import { StatusBadge } from "@/components/StatusBadge";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import type { UpdateOrderRequest } from "@shared/routes";
 
 export default function OrderDetail() {
   const [match, params] = useRoute("/orders/:id");
@@ -18,7 +19,7 @@ export default function OrderDetail() {
   if (isLoading) return <div className="flex justify-center p-12"><Loader2 className="animate-spin text-primary" /></div>;
   if (!order) return <div className="p-12 text-center">Order not found</div>;
 
-  const handleStatusChange = async (newStatus: string) => {
+  const handleStatusChange = async (newStatus: UpdateOrderRequest["status"]) => {
     try {
       await updateOrder({ id, status: newStatus });
       toast({ title: "Status updated", description: `Order marked as ${newStatus}` });

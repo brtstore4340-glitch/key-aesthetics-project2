@@ -4,6 +4,7 @@ import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
+import { firestore } from "./db";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -18,6 +19,18 @@ export async function registerRoutes(
     res.json(products);
   });
 
+  // Health check
+  app.get(api.auth.health.path, async (_req, res) => {
+    try {
+      // Lightweight ping to Firestore to confirm connectivity
+      await firestore.listCollections();
+      res.json({ status: "ok" });
+    } catch (err: any) {
+      console.error("Health check failed", err);
+      res.status(503).json({ status: "error", message: err?.message });
+    }
+  });
+
   app.get(api.products.get.path, async (req, res) => {
     const product = await storage.getProduct(Number(req.params.id));
     if (!product) return res.status(404).json({ message: "Product not found" });
@@ -25,7 +38,9 @@ export async function registerRoutes(
   });
 
   app.post(api.products.create.path, async (req, res) => {
-    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    if (!req.isAuthenticated() || (req.user as any).role !== 'admin') {
+      return res.status(403).send("Forbidden");
+    }
     try {
       const input = api.products.create.input.parse(req.body);
       const product = await storage.createProduct(input);
@@ -37,7 +52,9 @@ export async function registerRoutes(
   });
 
   app.put(api.products.update.path, async (req, res) => {
-    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    if (!req.isAuthenticated() || (req.user as any).role !== 'admin') {
+      return res.status(403).send("Forbidden");
+    }
     try {
       const input = api.products.update.input.parse(req.body);
       const product = await storage.updateProduct(Number(req.params.id), input);
@@ -46,6 +63,16 @@ export async function registerRoutes(
       if (e instanceof z.ZodError) res.status(400).json(e.errors);
       else throw e;
     }
+  });
+
+  app.delete(api.products.delete.path, async (req, res) => {
+    if (!req.isAuthenticated() || (req.user as any).role !== 'admin') {
+      return res.status(403).send("Forbidden");
+    }
+    const product = await storage.getProduct(Number(req.params.id));
+    if (!product) return res.status(404).json({ message: "Product not found" });
+    await storage.deleteProduct(Number(req.params.id));
+    res.sendStatus(200);
   });
 
   app.post(api.products.batchCreate.path, async (req, res) => {
@@ -190,44 +217,60 @@ export async function registerRoutes(
 
 // Seed function
 export async function seedDatabase() {
-  const admin = await storage.getUserByUsername("admin");
-  if (!admin) {
-    console.log("Seeding database...");
-    await storage.createUser({ 
-      username: "admin", 
-      pin: "1111", 
-      role: "admin", 
-      name: "Admin User" 
-    });
-    await storage.createUser({ 
-      username: "staff", 
-      pin: "2222", 
-      role: "staff", 
-      name: "Staff User" 
-    });
-    await storage.createUser({ 
-      username: "account", 
-      pin: "3333", 
-      role: "accounting", 
-      name: "Accounting User" 
-    });
-    
-    // Seed Products
-    await storage.createProduct({
-      name: "Anti-Aging Serum",
-      description: "Premium gold-infused serum",
-      price: "1500.00",
-      categoryId: 1,
-      images: ["https://placehold.co/600x400/171A1D/D4B16A?text=Serum"],
-      stock: 100
-    });
-    await storage.createProduct({
-      name: "Hydrating Cream",
-      description: "Deep moisture lock",
-      price: "950.00",
-      categoryId: 1,
-      images: ["https://placehold.co/600x400/171A1D/D4B16A?text=Cream"],
-      stock: 50
-    });
+  try {
+    const admin = await storage.getUserByUsername("admin");
+    if (!admin) {
+      console.log("Seeding database...");
+      await storage.createUser({ 
+        username: "admin", 
+        pin: "1111", 
+        role: "admin", 
+        name: "Admin User" 
+      });
+      await storage.createUser({ 
+        username: "staff", 
+        pin: "2222", 
+        role: "staff", 
+        name: "Staff User" 
+      });
+      await storage.createUser({ 
+        username: "account", 
+        pin: "3333", 
+        role: "accounting", 
+        name: "Accounting User" 
+      });
+      
+      // Seed Products
+      await storage.createProduct({
+        name: "Anti-Aging Serum",
+        description: "Premium gold-infused serum",
+        price: "1500.00",
+        categoryId: 1,
+        images: ["https://placehold.co/600x400/171A1D/D4B16A?text=Serum"],
+        stock: 100
+      });
+      await storage.createProduct({
+        name: "Hydrating Cream",
+        description: "Deep moisture lock",
+        price: "950.00",
+        categoryId: 1,
+        images: ["https://placehold.co/600x400/171A1D/D4B16A?text=Cream"],
+        stock: 50
+      });
+    }
+
+    // Ensure demo users exist even after initial seed
+    const demoUsers = [
+      { username: "aaaaa", pin: "1111", role: "staff", name: "User AAAAA" },
+    ];
+
+    for (const user of demoUsers) {
+      const existing = await storage.getUserByUsername(user.username);
+      if (!existing) {
+        await storage.createUser(user);
+      }
+    }
+  } catch (err) {
+    console.warn("Skipping seed (Firestore unavailable):", (err as Error)?.message ?? err);
   }
 }

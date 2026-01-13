@@ -42,6 +42,14 @@ export const api = {
         401: errorSchemas.unauthorized,
       },
     },
+    health: {
+      method: 'GET' as const,
+      path: '/api/health',
+      responses: {
+        200: z.object({ status: z.literal('ok') }),
+        503: z.object({ status: z.literal('error'), message: z.string().optional() }),
+      },
+    },
     logout: {
       method: 'POST' as const,
       path: '/api/logout',
@@ -231,3 +239,9 @@ export function buildUrl(path: string, params?: Record<string, string | number>)
 export type LoginInput = z.infer<typeof api.auth.login.input>;
 export type ProductResponse = z.infer<typeof api.products.get.responses[200]>;
 export type OrderResponse = z.infer<typeof api.orders.get.responses[200]>;
+export type { 
+  CreateProductRequest, 
+  UpdateProductRequest, 
+  CreateOrderRequest, 
+  UpdateOrderRequest 
+} from "./schema";
