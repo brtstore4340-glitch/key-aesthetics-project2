@@ -6,6 +6,7 @@ import {
 import { firestore } from "./db";
 import {
   type Category,
+  type InsertCategory,
   type InsertOrder,
   type InsertProduct,
   type InsertPromotion,
@@ -39,6 +40,9 @@ export interface IStorage {
 
   // Categories
   getCategories(): Promise<Category[]>;
+  createCategory(category: InsertCategory): Promise<Category>;
+  updateCategory(id: number, category: Partial<InsertCategory>): Promise<Category>;
+  deleteCategory(id: number): Promise<void>;
 
   // Promotions
   getPromotions(): Promise<Promotion[]>;
@@ -323,6 +327,33 @@ class FirestoreStorage implements IStorage {
         }),
       )
       .filter(Boolean) as Category[];
+  }
+
+  async createCategory(insertCategory: InsertCategory): Promise<Category> {
+    const id = await getNextId("categories");
+    await this.categories.doc(String(id)).set({
+      ...insertCategory,
+      id,
+      createdAt: Timestamp.now(),
+    });
+    const created = await this.categories.doc(String(id)).get();
+    return deserializeDates<Category>(created.data())!;
+  }
+
+  async updateCategory(id: number, updates: Partial<InsertCategory>): Promise<Category> {
+    await this.categories.doc(String(id)).set(
+      {
+        ...updates,
+        updatedAt: Timestamp.now(),
+      },
+      { merge: true },
+    );
+    const updated = await this.categories.doc(String(id)).get();
+    return deserializeDates<Category>(updated.data())!;
+  }
+
+  async deleteCategory(id: number): Promise<void> {
+    await this.categories.doc(String(id)).delete();
   }
 
   // Promotions

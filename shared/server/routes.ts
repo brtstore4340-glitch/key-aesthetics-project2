@@ -178,6 +178,42 @@ export async function registerRoutes(
     res.json(categories);
   });
 
+  app.post(api.categories.create.path, async (req, res) => {
+    if (!req.isAuthenticated() || (req.user as any).role !== 'admin') {
+      return res.status(403).send("Forbidden");
+    }
+    try {
+      const input = api.categories.create.input.parse(req.body);
+      const category = await storage.createCategory(input);
+      res.status(201).json(category);
+    } catch (e) {
+      if (e instanceof z.ZodError) res.status(400).json(e.errors);
+      else throw e;
+    }
+  });
+
+  app.put(api.categories.update.path, async (req, res) => {
+    if (!req.isAuthenticated() || (req.user as any).role !== 'admin') {
+      return res.status(403).send("Forbidden");
+    }
+    try {
+      const input = api.categories.update.input.parse(req.body);
+      const category = await storage.updateCategory(Number(req.params.id), input);
+      res.json(category);
+    } catch (e) {
+      if (e instanceof z.ZodError) res.status(400).json(e.errors);
+      else throw e;
+    }
+  });
+
+  app.delete(api.categories.delete.path, async (req, res) => {
+    if (!req.isAuthenticated() || (req.user as any).role !== 'admin') {
+      return res.status(403).send("Forbidden");
+    }
+    await storage.deleteCategory(Number(req.params.id));
+    res.sendStatus(200);
+  });
+
   // Promotions (Admin only)
   app.get(api.promotions.list.path, async (req, res) => {
     if (!req.isAuthenticated() || (req.user as any).role !== 'admin') {
@@ -240,12 +276,18 @@ export async function seedDatabase() {
         name: "Accounting User" 
       });
       
+      // Seed Categories
+      const defaultCategory = await storage.createCategory({
+        name: "Skincare",
+        colorTag: "#D4B16A",
+      });
+
       // Seed Products
       await storage.createProduct({
         name: "Anti-Aging Serum",
         description: "Premium gold-infused serum",
         price: "1500.00",
-        categoryId: 1,
+        categoryId: defaultCategory.id,
         images: ["https://placehold.co/600x400/171A1D/D4B16A?text=Serum"],
         stock: 100
       });
@@ -253,7 +295,7 @@ export async function seedDatabase() {
         name: "Hydrating Cream",
         description: "Deep moisture lock",
         price: "950.00",
-        categoryId: 1,
+        categoryId: defaultCategory.id,
         images: ["https://placehold.co/600x400/171A1D/D4B16A?text=Cream"],
         stock: 50
       });
