@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/use-auth";
-import { Settings as SettingsIcon, User, Shield, Bell, Save, UserPlus, Trash2, ShieldCheck } from "lucide-react";
+import { Settings as SettingsIcon, User, Shield, Save, UserPlus, Trash2, ShieldCheck, Tags } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
@@ -12,7 +12,8 @@ import { api, buildUrl } from "@shared/routes";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertUserSchema } from "@shared/schema";
+import { insertCategorySchema, insertUserSchema, type Category } from "@shared/schema";
+import { useEffect, useState } from "react";
 
 export default function Settings() {
   const { user } = useAuth();
@@ -35,10 +36,43 @@ export default function Settings() {
     }
   });
 
-  const { data: usersList, isLoading: isLoadingUsers } = useQuery({
+  const categoryForm = useForm({
+    resolver: zodResolver(insertCategorySchema),
+    defaultValues: {
+      name: "",
+      colorTag: "#D4B16A",
+    }
+  });
+
+  const [categoryDrafts, setCategoryDrafts] = useState<Record<number, { name: string; colorTag: string }>>({});
+
+  const { data: usersList } = useQuery({
     queryKey: [api.users.list.path],
     enabled: user?.role === "admin",
   });
+
+  const { data: categoriesList, isLoading: isLoadingCategories } = useQuery({
+    queryKey: [api.categories.list.path],
+    queryFn: async () => {
+      const res = await fetch(api.categories.list.path, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch categories");
+      return api.categories.list.responses[200].parse(await res.json());
+    },
+    enabled: user?.role === "admin",
+  });
+
+  useEffect(() => {
+    if (!Array.isArray(categoriesList)) return;
+    setCategoryDrafts(
+      categoriesList.reduce(
+        (acc, category) => {
+          acc[category.id] = { name: category.name ?? "", colorTag: category.colorTag ?? "#000000" };
+          return acc;
+        },
+        {} as Record<number, { name: string; colorTag: string }>,
+      ),
+    );
+  }, [categoriesList]);
 
   const createUserMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -62,6 +96,48 @@ export default function Settings() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.users.list.path] });
       toast({ title: "User deleted" });
+    }
+  });
+
+  const createCategoryMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest("POST", api.categories.create.path, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.categories.list.path] });
+      toast({ title: "Category added" });
+      categoryForm.reset({ name: "", colorTag: "#D4B16A" });
+    },
+    onError: (err: any) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    }
+  });
+
+  const updateCategoryMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: Partial<Category> }) => {
+      const res = await apiRequest("PUT", buildUrl(api.categories.update.path, { id }), data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.categories.list.path] });
+      toast({ title: "Category updated" });
+    },
+    onError: (err: any) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    }
+  });
+
+  const deleteCategoryMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest("DELETE", buildUrl(api.categories.delete.path, { id }));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.categories.list.path] });
+      toast({ title: "Category deleted" });
+    },
+    onError: (err: any) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
     }
   });
 
@@ -91,6 +167,12 @@ export default function Settings() {
             <Button variant="ghost" className="w-full justify-start gap-3 text-muted-foreground hover:bg-secondary/50 hover:text-foreground">
               <ShieldCheck className="w-4 h-4" />
               User Management
+            </Button>
+          )}
+          {user?.role === "admin" && (
+            <Button variant="ghost" className="w-full justify-start gap-3 text-muted-foreground hover:bg-secondary/50 hover:text-foreground">
+              <Tags className="w-4 h-4" />
+              Product Categories
             </Button>
           )}
           <Button variant="ghost" className="w-full justify-start gap-3 text-muted-foreground hover:bg-secondary/50 hover:text-foreground">
@@ -261,6 +343,129 @@ export default function Settings() {
                         )}
                       </div>
                     ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-border/40 shadow-xl shadow-black/20 overflow-hidden">
+                <CardHeader className="bg-secondary/20 border-b border-border/40">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                      <Tags className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <CardTitle>Product Categories</CardTitle>
+                      <CardDescription>Manage category labels used for product organization</CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-6 space-y-6">
+                  <Form {...categoryForm}>
+                    <form
+                      onSubmit={categoryForm.handleSubmit((data) => createCategoryMutation.mutate(data))}
+                      className="grid gap-4 md:grid-cols-[1fr_auto_auto] items-end"
+                    >
+                      <FormField
+                        control={categoryForm.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Category Name</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="e.g. Skincare" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={categoryForm.control}
+                        name="colorTag"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Color Tag</FormLabel>
+                            <FormControl>
+                              <Input {...field} type="color" className="h-10 w-16 p-1" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <Button type="submit" className="h-10" disabled={createCategoryMutation.isPending}>
+                        Add Category
+                      </Button>
+                    </form>
+                  </Form>
+
+                  <div className="space-y-3">
+                    {isLoadingCategories && (
+                      <div className="text-sm text-muted-foreground">Loading categories...</div>
+                    )}
+                    {!isLoadingCategories && (!categoriesList || categoriesList.length === 0) && (
+                      <div className="text-sm text-muted-foreground">No categories yet. Add one above.</div>
+                    )}
+                    {categoriesList?.map((category: Category) => {
+                      const draft = categoryDrafts[category.id] ?? {
+                        name: category.name ?? "",
+                        colorTag: category.colorTag ?? "#000000",
+                      };
+                      const hasChanges = draft.name !== category.name || draft.colorTag !== category.colorTag;
+
+                      return (
+                        <div
+                          key={category.id}
+                          className="grid gap-3 rounded-lg border border-border/40 bg-secondary/20 p-3 md:grid-cols-[1fr_auto_auto]"
+                        >
+                          <Input
+                            value={draft.name}
+                            onChange={(event) =>
+                              setCategoryDrafts((prev) => ({
+                                ...prev,
+                                [category.id]: { ...draft, name: event.target.value },
+                              }))
+                            }
+                            placeholder="Category name"
+                          />
+                          <div className="flex items-center gap-2">
+                            <Input
+                              type="color"
+                              value={draft.colorTag}
+                              onChange={(event) =>
+                                setCategoryDrafts((prev) => ({
+                                  ...prev,
+                                  [category.id]: { ...draft, colorTag: event.target.value },
+                                }))
+                              }
+                              className="h-10 w-16 p-1"
+                            />
+                            <span className="text-xs text-muted-foreground">{draft.colorTag}</span>
+                          </div>
+                          <div className="flex items-center gap-2 justify-end">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={!hasChanges || updateCategoryMutation.isPending}
+                              onClick={() =>
+                                updateCategoryMutation.mutate({
+                                  id: category.id,
+                                  data: { name: draft.name, colorTag: draft.colorTag },
+                                })
+                              }
+                            >
+                              Save
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-destructive hover:bg-destructive/10"
+                              onClick={() => deleteCategoryMutation.mutate(category.id)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </CardContent>
               </Card>
