@@ -1,76 +1,104 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/use-auth";
-import { Settings as SettingsIcon, User, Shield, Bell, Save, UserPlus, Trash2, ShieldCheck } from "lucide-react";
+import {
+  Settings as SettingsIcon,
+  User,
+  Shield,
+  Save,
+  UserPlus,
+  Trash2,
+  ShieldCheck,
+} from "lucide-react";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { api, buildUrl } from "@shared/routes";
-import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertUserSchema } from "@shared/schema";
+import { userFormSchema, type UserFormValues } from "@/types/schemas";
+import { createUser, deleteUser, fetchUsers, updateUserProfile } from "@/services/users";
+import { queryClient } from "@/lib/queryClient";
 
 export default function Settings() {
   const { user } = useAuth();
   const { toast } = useToast();
-  
+
   const form = useForm({
     defaultValues: {
       name: user?.name || "",
       username: user?.username || "",
-    }
+    },
   });
 
-  const newUserForm = useForm({
-    resolver: zodResolver(insertUserSchema),
+  const newUserForm = useForm<UserFormValues>({
+    resolver: zodResolver(userFormSchema),
     defaultValues: {
       username: "",
       name: "",
       role: "staff",
       pin: "",
-    }
+    },
   });
 
   const { data: usersList, isLoading: isLoadingUsers } = useQuery({
-    queryKey: [api.users.list.path],
+    queryKey: ["users"],
+    queryFn: fetchUsers,
     enabled: user?.role === "admin",
   });
 
   const createUserMutation = useMutation({
-    mutationFn: async (data: any) => {
-      const res = await apiRequest("POST", api.users.create.path, data);
-      return res.json();
+    mutationFn: async (data: UserFormValues) => {
+      await createUser(data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [api.users.list.path] });
+      queryClient.invalidateQueries({ queryKey: ["users"] });
       toast({ title: "User created", description: "New user added successfully." });
       newUserForm.reset();
     },
     onError: (err: any) => {
       toast({ title: "Error", description: err.message, variant: "destructive" });
-    }
+    },
   });
 
   const deleteUserMutation = useMutation({
-    mutationFn: async (id: number) => {
-      await apiRequest("DELETE", buildUrl(api.users.delete.path, { id }));
+    mutationFn: async (id: string) => {
+      await deleteUser(id);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [api.users.list.path] });
+      queryClient.invalidateQueries({ queryKey: ["users"] });
       toast({ title: "User deleted" });
-    }
+    },
   });
 
-  const onSubmit = (data: any) => {
-    toast({
-      title: "Settings updated",
-      description: "Your profile changes have been saved successfully.",
-    });
+  const updateProfileMutation = useMutation({
+    mutationFn: async (data: { name: string }) => {
+      if (!user) return;
+      await updateUserProfile(user.id, { name: data.name });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      toast({
+        title: "Settings updated",
+        description: "Your profile changes have been saved successfully.",
+      });
+    },
+    onError: (err: any) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const onSubmit = (data: { name: string }) => {
+    updateProfileMutation.mutate({ name: data.name });
   };
+
+  useEffect(() => {
+    if (user) {
+      form.reset({ name: user.name, username: user.username });
+    }
+  }, [user, form]);
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -83,17 +111,26 @@ export default function Settings() {
 
       <div className="grid gap-8 md:grid-cols-[240px_1fr]">
         <aside className="space-y-1">
-          <Button variant="ghost" className="w-full justify-start gap-3 bg-primary/10 text-primary hover:bg-primary/20">
+          <Button
+            variant="ghost"
+            className="w-full justify-start gap-3 bg-primary/10 text-primary hover:bg-primary/20"
+          >
             <User className="w-4 h-4" />
             Profile
           </Button>
           {user?.role === "admin" && (
-            <Button variant="ghost" className="w-full justify-start gap-3 text-muted-foreground hover:bg-secondary/50 hover:text-foreground">
+            <Button
+              variant="ghost"
+              className="w-full justify-start gap-3 text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
+            >
               <ShieldCheck className="w-4 h-4" />
               User Management
             </Button>
           )}
-          <Button variant="ghost" className="w-full justify-start gap-3 text-muted-foreground hover:bg-secondary/50 hover:text-foreground">
+          <Button
+            variant="ghost"
+            className="w-full justify-start gap-3 text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
+          >
             <Shield className="w-4 h-4" />
             Security
           </Button>
@@ -123,7 +160,10 @@ export default function Settings() {
                         <FormItem>
                           <FormLabel>Full Name</FormLabel>
                           <FormControl>
-                            <Input {...field} className="bg-secondary/30 border-border/40 focus:ring-primary/20" />
+                            <Input
+                              {...field}
+                              className="bg-secondary/30 border-border/40 focus:ring-primary/20"
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -136,7 +176,11 @@ export default function Settings() {
                         <FormItem>
                           <FormLabel>Username</FormLabel>
                           <FormControl>
-                            <Input {...field} disabled className="bg-secondary/10 border-border/40 text-muted-foreground opacity-50" />
+                            <Input
+                              {...field}
+                              disabled
+                              className="bg-secondary/10 border-border/40 text-muted-foreground opacity-50"
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -145,7 +189,11 @@ export default function Settings() {
                   </div>
 
                   <div className="pt-4 border-t border-border/40 flex justify-end">
-                    <Button type="submit" className="gap-2 shadow-lg shadow-primary/20">
+                    <Button
+                      type="submit"
+                      className="gap-2 shadow-lg shadow-primary/20"
+                      disabled={updateProfileMutation.isPending}
+                    >
                       <Save className="w-4 h-4" />
                       Save Changes
                     </Button>
@@ -171,7 +219,10 @@ export default function Settings() {
                 </CardHeader>
                 <CardContent className="pt-6">
                   <Form {...newUserForm}>
-                    <form onSubmit={newUserForm.handleSubmit((data) => createUserMutation.mutate(data))} className="space-y-4">
+                    <form
+                      onSubmit={newUserForm.handleSubmit((data) => createUserMutation.mutate(data))}
+                      className="space-y-4"
+                    >
                       <div className="grid md:grid-cols-2 gap-4">
                         <FormField
                           control={newUserForm.control}
@@ -179,7 +230,9 @@ export default function Settings() {
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Username</FormLabel>
-                              <FormControl><Input {...field} /></FormControl>
+                              <FormControl>
+                                <Input {...field} />
+                              </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
@@ -190,7 +243,9 @@ export default function Settings() {
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Full Name</FormLabel>
-                              <FormControl><Input {...field} /></FormControl>
+                              <FormControl>
+                                <Input {...field} />
+                              </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
@@ -201,7 +256,9 @@ export default function Settings() {
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>4-Digit PIN</FormLabel>
-                              <FormControl><Input {...field} maxLength={4} placeholder="1234" /></FormControl>
+                              <FormControl>
+                                <Input {...field} maxLength={4} placeholder="1234" />
+                              </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
@@ -242,26 +299,36 @@ export default function Settings() {
                   <CardTitle>Existing Users</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
-                    {Array.isArray(usersList) && usersList.map((u: any) => (
-                      <div key={u.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/20 border border-border/40">
-                        <div>
-                          <p className="font-medium">{u.name}</p>
-                          <p className="text-xs text-muted-foreground">@{u.username} • {u.role}</p>
-                        </div>
-                        {u.id !== user.id && (
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="text-destructive hover:bg-destructive/10"
-                            onClick={() => deleteUserMutation.mutate(u.id)}
+                  {isLoadingUsers ? (
+                    <div className="text-sm text-muted-foreground">Loading users...</div>
+                  ) : (
+                    <div className="space-y-3">
+                      {Array.isArray(usersList) &&
+                        usersList.map((u) => (
+                          <div
+                            key={u.id}
+                            className="flex items-center justify-between p-3 rounded-lg bg-secondary/20 border border-border/40"
                           >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+                            <div>
+                              <p className="font-medium">{u.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                @{u.username} • {u.role}
+                              </p>
+                            </div>
+                            {u.id !== user?.id && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-destructive hover:bg-destructive/10"
+                                onClick={() => deleteUserMutation.mutate(u.id)}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </div>
+                        ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </>

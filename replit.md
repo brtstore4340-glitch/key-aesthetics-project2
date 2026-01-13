@@ -2,7 +2,7 @@
 
 ## Overview
 
-A mobile-first web application for managing clinic/sales confirmation order forms. Staff can draft orders, attach documents, and submit for admin verification. The system features role-based access control (admin, staff, accounting), a dark-themed UI with gold accents, and PostgreSQL-backed persistence.
+A mobile-first web application for managing clinic/sales confirmation order forms. Staff can draft orders, attach documents, and submit for admin verification. The system features role-based access control (admin, staff, accounting), a dark-themed UI with gold accents, and Firebase-backed persistence.
 
 ## User Preferences
 
@@ -17,39 +17,33 @@ Preferred communication style: Simple, everyday language.
 - **UI Components**: shadcn/ui component library (New York style) with Radix UI primitives
 - **Styling**: Tailwind CSS with dark mode default, custom CSS variables for theming (gold primary #D4B16A, dark backgrounds)
 - **Animations**: Framer Motion for transitions and micro-interactions
-- **Path Aliases**: `@/` maps to `client/src/`, `@shared/` maps to `shared/`
+- **Path Aliases**: `@/` maps to `client/src/`
 
-### Backend Architecture
-- **Runtime**: Node.js with Express.js
-- **Language**: TypeScript with ESM modules
-- **Authentication**: Passport.js with local strategy (username + PIN), express-session with PostgreSQL session store
-- **API Pattern**: REST endpoints defined in `server/routes.ts`, with Zod schemas for validation
-- **Type-Safe Routes**: Shared route definitions in `shared/routes.ts` with input/output schemas
+### Backend Architecture (Firebase)
+- **Authentication**: Firebase Auth (username + PIN mapped to email + password)
+- **Database**: Firestore for products, categories, promotions, orders, and user profiles
+- **Storage**: Firebase Storage for order attachments
+- **Secure Logic**: Cloud Functions for user provisioning and order creation/status updates
 
 ### Data Storage
-- **Database**: PostgreSQL with Drizzle ORM
-- **Schema Location**: `shared/schema.ts` contains all table definitions
-- **Migrations**: Drizzle Kit with `db:push` command for schema sync
-- **Session Store**: connect-pg-simple for persistent sessions
-- **Core Tables**: users, products, orders, categories, promotions
+- **Collections**: users, products, orders, categories, promotions
+- **Indexes**: Composite index for orders by status + createdAt
+- **Security Rules**: Firestore and Storage rules in `firebase/`
 
 ### Authentication & Authorization
-- **Method**: Session-based auth with Passport local strategy
-- **Credentials**: Username + 4-digit PIN (not password-based)
-- **Roles**: admin, staff, accounting with role-based UI rendering
-- **Session Persistence**: PostgreSQL-backed session store with auto-table creation
+- **Method**: Firebase Auth with user profile documents
+- **Credentials**: Username + 4-digit PIN converted to email for Auth
+- **Roles**: admin, staff, accounting with role-based UI rendering and rules
 
 ### Build & Development
-- **Dev Server**: Vite dev server with HMR, proxied through Express
-- **Production Build**: Vite for client, esbuild for server bundling
-- **Output**: `dist/public` for client assets, `dist/index.cjs` for server
+- **Dev Server**: Vite dev server with HMR
+- **Production Build**: Vite build output to `dist/public`
 
 ## External Dependencies
 
-### Database
-- PostgreSQL via `DATABASE_URL` environment variable
-- Drizzle ORM for type-safe database operations
-- connect-pg-simple for session persistence
+### Firebase
+- Firebase SDK for Auth, Firestore, Storage, and Functions
+- Firebase Admin SDK in Cloud Functions
 
 ### UI Libraries
 - Radix UI primitives (dialog, dropdown, tabs, etc.)
@@ -60,8 +54,7 @@ Preferred communication style: Simple, everyday language.
 
 ### Form & Validation
 - React Hook Form with @hookform/resolvers
-- Zod for schema validation (shared between client and server)
-- drizzle-zod for automatic schema generation from database tables
+- Zod for schema validation
 
 ### Development Tools
 - Replit-specific plugins: vite-plugin-runtime-error-modal, vite-plugin-cartographer
