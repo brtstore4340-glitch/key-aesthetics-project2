@@ -54,7 +54,9 @@ export const orders = pgTable("orders", {
   customerInfo: jsonb("customer_info").$type<{
     doctorName?: string;
     doctorId?: string;
+    phone?: string;
     address?: string;
+    offeredPrice?: string;
   }>(),
   attachments: jsonb("attachments").$type<{
     type: 'id_card' | 'payment_slip' | 'other';
