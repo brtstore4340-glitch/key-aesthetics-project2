@@ -49,8 +49,11 @@ export default function Products() {
   };
 
   const handleExportTemplate = () => {
-    const ws = XLSX.utils.json_to_sheet([
-      { "Product Name": "Example Product", "Normal Price": "100.00", "Pic (001.jpg)": "image_url_here", "Unit": "10" }
+    const defaultCategory = categories?.[0]?.name ?? "Category Name";
+    const headers = ["Product Name", "Normal Price", "Unit", "Category", "Pic (001.jpg)"];
+    const ws = XLSX.utils.aoa_to_sheet([
+      headers,
+      ["Example Product", "100.00", "10", defaultCategory, "image_url_here"]
     ]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Template");
@@ -60,6 +63,10 @@ export default function Products() {
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (!categories?.length) {
+      toast({ title: "Upload Failed", description: "Please create at least one category before uploading products.", variant: "destructive" });
+      return;
+    }
 
     const reader = new FileReader();
     reader.onload = async (event) => {
@@ -70,15 +77,33 @@ export default function Products() {
         const worksheet = workbook.Sheets[sheetName];
         const json = XLSX.utils.sheet_to_json(worksheet) as any[];
 
-        const formattedProducts = json.map(row => ({
-          name: String(row["Product Name"]),
-          price: String(row["Normal Price"]),
-          images: row["Pic (001.jpg)"] ? [String(row["Pic (001.jpg)"])] : [],
-          stock: parseInt(String(row["Unit"])) || 0,
-          categoryId: categories?.[0]?.id || null, // Default to first category
-          description: "",
-          isEnabled: true
-        }));
+        const formattedProducts = json
+          .map(row => {
+            const name = String(row["Product Name"] ?? "").trim();
+            const priceValue = row["Normal Price"] ?? "";
+            const price = typeof priceValue === "number" ? priceValue.toFixed(2) : String(priceValue).trim();
+            const stockValue = parseInt(String(row["Unit"] ?? "0"), 10);
+            const categoryLabel = String(row["Category"] ?? "").trim();
+            if (!name || !price) return null;
+            const matchedCategory = categories.find(
+              (category) => category.name.toLowerCase() === categoryLabel.toLowerCase()
+            );
+            return {
+              name,
+              price,
+              images: row["Pic (001.jpg)"] ? [String(row["Pic (001.jpg)"]).trim()] : [],
+              stock: Number.isNaN(stockValue) ? 0 : stockValue,
+              categoryId: matchedCategory?.id ?? categories[0].id,
+              description: "",
+              isEnabled: true
+            };
+          })
+          .filter((product): product is NonNullable<typeof product> => Boolean(product));
+
+        if (!formattedProducts.length) {
+          toast({ title: "Upload Failed", description: "No valid rows found in the file.", variant: "destructive" });
+          return;
+        }
 
         await apiRequest("POST", api.products.batchCreate.path, formattedProducts);
         queryClient.invalidateQueries({ queryKey: [api.products.list.path] });

@@ -144,6 +144,7 @@ export default function CreateOrder() {
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
             {filteredProducts?.map(product => {
               const cartItem = cart.find(item => item.productId === product.id);
+              const isOutOfStock = (product.stock ?? 0) <= 0;
               return (
                 <Card 
                   key={product.id} 
@@ -162,6 +163,11 @@ export default function CreateOrder() {
                         <Badge className="bg-primary text-primary-foreground shadow-lg animate-in zoom-in duration-300">
                           {cartItem.quantity} selected
                         </Badge>
+                      </div>
+                    )}
+                    {isOutOfStock && (
+                      <div className="absolute top-3 right-3">
+                        <Badge variant="destructive">Out of stock</Badge>
                       </div>
                     )}
                   </div>
@@ -193,6 +199,7 @@ export default function CreateOrder() {
                             size="icon" 
                             className="h-8 w-8 rounded-lg hover:bg-background shadow-sm"
                             onClick={() => updateQuantity(product.id, 1)}
+                            disabled={isOutOfStock}
                           >
                             <Plus className="w-4 h-4" />
                           </Button>
@@ -201,8 +208,9 @@ export default function CreateOrder() {
                         <Button 
                           className="w-full rounded-xl bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 group-hover:shadow-primary/40 transition-all gap-2"
                           onClick={() => addToCart(product)}
+                          disabled={isOutOfStock}
                         >
-                          <Plus className="w-4 h-4" /> Add to Order
+                          <Plus className="w-4 h-4" /> {isOutOfStock ? "Out of Stock" : "Add to Order"}
                         </Button>
                       )}
                     </div>
@@ -262,7 +270,9 @@ export default function CreateOrder() {
             
             <div className="space-y-3">
               <AnimatePresence mode="popLayout">
-                {cart.map(item => (
+                {cart.map(item => {
+                  const isOutOfStock = (item.product.stock ?? 0) <= 0;
+                  return (
                   <motion.div 
                     key={item.productId}
                     layout
@@ -280,11 +290,20 @@ export default function CreateOrder() {
                     <div className="flex-1 min-w-0">
                       <h4 className="font-semibold text-sm truncate">{item.product.name}</h4>
                       <p className="text-xs text-primary font-bold">฿{Number(item.product.price).toLocaleString()}</p>
+                      {isOutOfStock && (
+                        <p className="text-[10px] uppercase tracking-widest text-destructive mt-1">Out of stock</p>
+                      )}
                     </div>
                     <div className="flex items-center gap-2 bg-background/50 rounded-lg p-1">
                       <button onClick={() => updateQuantity(item.productId, -1)} className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-secondary transition-colors"><Minus className="w-3 h-3"/></button>
                       <span className="text-xs font-mono font-bold w-4 text-center">{item.quantity}</span>
-                      <button onClick={() => updateQuantity(item.productId, 1)} className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-secondary transition-colors"><Plus className="w-3 h-3"/></button>
+                      <button
+                        onClick={() => updateQuantity(item.productId, 1)}
+                        className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-secondary transition-colors"
+                        disabled={isOutOfStock}
+                      >
+                        <Plus className="w-3 h-3"/>
+                      </button>
                     </div>
                     <Button 
                       variant="ghost" 
@@ -295,7 +314,8 @@ export default function CreateOrder() {
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </motion.div>
-                ))}
+                );
+                })}
               </AnimatePresence>
 
               {cart.length === 0 && (
