@@ -60,8 +60,8 @@ export default function Promotions() {
     }
   });
 
-  if (user?.role !== "admin") {
-    return <div className="p-8 text-center">Unauthorized. Only Admins can access this page.</div>;
+  if (user?.role !== "admin" && user?.role !== "staff") {
+    return <div className="p-8 text-center">Unauthorized. Only Admins and Staff can access this page.</div>;
   }
 
   if (isLoadingPromos) return <div className="flex justify-center p-12"><Loader2 className="animate-spin text-primary" /></div>;
@@ -76,90 +76,92 @@ export default function Promotions() {
       </div>
 
       <div className="grid gap-8 lg:grid-cols-2">
-        <Card className="border-border/40 shadow-xl shadow-black/20 overflow-hidden h-fit">
-          <CardHeader className="bg-primary/5 border-b border-border/40">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10 text-primary">
-                <Plus className="w-5 h-5" />
+        {user?.role === "admin" && (
+          <Card className="border-border/40 shadow-xl shadow-black/20 overflow-hidden h-fit">
+            <CardHeader className="bg-primary/5 border-b border-border/40">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                  <Plus className="w-5 h-5" />
+                </div>
+                <div>
+                  <CardTitle>Create Promotion</CardTitle>
+                  <CardDescription>Setup a new product promotion</CardDescription>
+                </div>
               </div>
-              <div>
-                <CardTitle>Create Promotion</CardTitle>
-                <CardDescription>Setup a new product promotion</CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="pt-6">
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit((data) => createMutation.mutate(data))} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Promotion Name</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="e.g. Summer Special" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="productId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Select Product</FormLabel>
-                      <Select 
-                        onValueChange={(val) => field.onChange(parseInt(val))} 
-                        value={field.value?.toString() || ""}
-                      >
+            </CardHeader>
+            <CardContent className="pt-6">
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit((data) => createMutation.mutate(data))} className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Promotion Name</FormLabel>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Choose a product" />
-                          </SelectTrigger>
+                          <Input {...field} placeholder="e.g. Summer Special" />
                         </FormControl>
-                        <SelectContent>
-                          {products?.map((p) => (
-                            <SelectItem key={p.id} value={p.id.toString()}>
-                              {p.name} (฿{Number(p.price).toLocaleString()})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                <FormField
-                  control={form.control}
-                  name="withdrawAmount"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Withdraw Amount</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="number" 
-                          {...field} 
-                          onChange={(e) => field.onChange(parseInt(e.target.value))} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                  <FormField
+                    control={form.control}
+                    name="productId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Select Product</FormLabel>
+                        <Select 
+                          onValueChange={(val) => field.onChange(parseInt(val))} 
+                          value={field.value?.toString() || ""}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Choose a product" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {products?.map((p) => (
+                              <SelectItem key={p.id} value={p.id.toString()}>
+                                {p.name} (฿{Number(p.price).toLocaleString()})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                <Button type="submit" className="w-full" disabled={createMutation.isPending}>
-                  {createMutation.isPending ? <Loader2 className="animate-spin" /> : "Create Promotion"}
-                </Button>
-              </form>
-            </Form>
-          </CardContent>
-        </Card>
+                  <FormField
+                    control={form.control}
+                    name="withdrawAmount"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Withdraw Amount</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number" 
+                            {...field} 
+                            onChange={(e) => field.onChange(parseInt(e.target.value))} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-        <div className="space-y-4">
+                  <Button type="submit" className="w-full" disabled={createMutation.isPending}>
+                    {createMutation.isPending ? <Loader2 className="animate-spin" /> : "Create Promotion"}
+                  </Button>
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
+        )}
+
+        <div className={user?.role === "admin" ? "space-y-4" : "space-y-4 lg:col-span-2"}>
           <h2 className="text-xl font-display font-bold flex items-center gap-2">
             <Tag className="w-5 h-5 text-primary" /> Active Promotions
           </h2>
@@ -180,14 +182,16 @@ export default function Promotions() {
                       {products?.find(p => p.id === promo.productId)?.name || "Unknown Product"} • {promo.withdrawAmount} Units
                     </p>
                   </div>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={() => deleteMutation.mutate(promo.id)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  {user?.role === "admin" && (
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => deleteMutation.mutate(promo.id)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
                 </div>
               </Card>
             ))

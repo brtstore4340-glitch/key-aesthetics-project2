@@ -21,16 +21,41 @@ export function Sidebar() {
 
   const isActive = (path: string) => location === path;
   
-  const links = [
-    { href: "/", label: "Overview", icon: LayoutDashboard },
-    { href: "/orders", label: "Orders", icon: FileText },
-    { href: "/products", label: "Products", icon: ShoppingBag },
-  ];
+  const getLinks = () => {
+    const role = user?.role;
+    const baseLinks = [
+      { href: "/", label: "Overview", icon: LayoutDashboard },
+    ];
 
-  if (user?.role === "admin") {
-    links.push({ href: "/promotions", label: "Promotions", icon: Gift });
-    links.push({ href: "/settings", label: "Settings", icon: Settings });
-  }
+    if (role === "admin") {
+      return [
+        ...baseLinks,
+        { href: "/orders", label: "Orders", icon: FileText },
+        { href: "/products", label: "Products", icon: ShoppingBag },
+        { href: "/promotions", label: "Promotions", icon: Gift },
+        { href: "/settings", label: "Settings", icon: Settings },
+      ];
+    }
+
+    if (role === "staff") {
+      return [
+        ...baseLinks,
+        { href: "/products", label: "Products", icon: ShoppingBag },
+        { href: "/promotions", label: "Promotions", icon: Gift },
+      ];
+    }
+
+    if (role === "accounting") {
+      return [
+        ...baseLinks,
+        { href: "/orders", label: "Packing & Shipping", icon: FileText },
+      ];
+    }
+
+    return baseLinks;
+  };
+
+  const links = getLinks();
 
   const NavContent = () => (
     <div className="flex flex-col h-full bg-card/95 backdrop-blur-xl border-r border-border/40 p-6 shadow-2xl">
@@ -62,17 +87,19 @@ export function Sidebar() {
           );
         })}
 
-        <div className="pt-4 mt-4 border-t border-border/40">
-           <Link href="/orders/new" className="
-              flex items-center gap-3 px-4 py-3 rounded-xl
-              bg-primary text-primary-foreground font-semibold
-              shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 hover:-translate-y-0.5
-              transition-all duration-300
-           ">
-            <PlusCircle className="w-5 h-5" />
-            New Order
-          </Link>
-        </div>
+        {(user?.role === "admin" || user?.role === "staff") && (
+          <div className="pt-4 mt-4 border-t border-border/40">
+             <Link href="/orders/new" className="
+                flex items-center gap-3 px-4 py-3 rounded-xl
+                bg-primary text-primary-foreground font-semibold
+                shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 hover:-translate-y-0.5
+                transition-all duration-300
+             ">
+              <PlusCircle className="w-5 h-5" />
+              New Order
+            </Link>
+          </div>
+        )}
       </nav>
 
       <div className="pt-6 border-t border-border/40">

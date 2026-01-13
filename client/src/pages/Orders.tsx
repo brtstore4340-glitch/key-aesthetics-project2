@@ -8,26 +8,31 @@ import { useState } from "react";
 
 export default function Orders() {
   const { user } = useAuth();
-  const [filter, setFilter] = useState<string>("all");
+  const [filter, setFilter] = useState<string>(user?.role === 'accounting' ? "submitted" : "all");
   const { data: orders, isLoading } = useOrders(filter === "all" ? undefined : filter, user?.role);
 
   if (isLoading) {
     return <div className="flex justify-center p-12"><Loader2 className="animate-spin text-primary" /></div>;
   }
 
-  const filters = [
-    { id: "all", label: "All Orders" },
-    { id: "draft", label: "Drafts" },
-    { id: "submitted", label: "Submitted" },
-    { id: "verified", label: "Verified" },
-  ];
+  const filters = user?.role === 'accounting' 
+    ? [{ id: "submitted", label: "To Pack" }, { id: "verified", label: "Shipped" }]
+    : [
+        { id: "all", label: "All Orders" },
+        { id: "draft", label: "Drafts" },
+        { id: "submitted", label: "Submitted" },
+        { id: "verified", label: "Verified" },
+      ];
+
+  const pageTitle = user?.role === 'accounting' ? "Packing & Shipping" : "Orders";
+  const pageDesc = user?.role === 'accounting' ? "Manage outgoing shipments and packing lists" : "Manage and track order status";
 
   return (
     <div className="space-y-6">
       <header className="flex flex-col md:flex-row justify-between md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-display font-bold">Orders</h1>
-          <p className="text-muted-foreground">Manage and track order status</p>
+          <h1 className="text-3xl font-display font-bold">{pageTitle}</h1>
+          <p className="text-muted-foreground">{pageDesc}</p>
         </div>
         
         <div className="flex items-center gap-2 bg-card border border-border p-1 rounded-xl">
