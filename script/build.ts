@@ -6,8 +6,8 @@ import { rm, readFile } from "fs/promises";
 // which helps cold start times
 const allowlist = [
   "@google/generative-ai",
+  "firebase-admin",
   "axios",
-  "connect-pg-simple",
   "cors",
   "date-fns",
   "drizzle-orm",
@@ -16,14 +16,12 @@ const allowlist = [
   "express-rate-limit",
   "express-session",
   "jsonwebtoken",
-  "memorystore",
   "multer",
   "nanoid",
   "nodemailer",
   "openai",
   "passport",
   "passport-local",
-  "pg",
   "stripe",
   "uuid",
   "ws",
@@ -47,7 +45,8 @@ async function buildAll() {
   const externals = allDeps.filter((dep) => !allowlist.includes(dep));
 
   await esbuild({
-    entryPoints: ["server/index.ts"],
+    // Server entry lives under shared/server
+    entryPoints: ["shared/server/index.ts"],
     platform: "node",
     bundle: true,
     format: "cjs",

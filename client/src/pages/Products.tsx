@@ -112,6 +112,8 @@ export default function Products() {
                   onChange={handleFileUpload}
                   className="absolute inset-0 opacity-0 cursor-pointer"
                   title="Upload Excel"
+                  name="productUpload"
+                  id="productUpload"
                 />
                 <Button variant="outline" size="sm" className="gap-2 pointer-events-none">
                   <Upload className="w-4 h-4" /> Batch Upload

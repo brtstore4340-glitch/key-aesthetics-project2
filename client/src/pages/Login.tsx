@@ -4,11 +4,14 @@ import { useLocation } from "wouter";
 import { Loader2, ArrowRight, Delete } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
+import { api } from "@shared/routes";
 
 export default function Login() {
   const { login, isLoggingIn, user } = useAuth();
+  const presetUsers = ["admin", "staff", "account", "aaaaa"];
   const [username, setUsername] = useState("");
   const [pin, setPin] = useState("");
+  const [health, setHealth] = useState<"checking" | "ok" | "error">("checking");
   const [_, setLocation] = useLocation();
   const { toast } = useToast();
 
@@ -17,6 +20,22 @@ export default function Login() {
       setLocation("/");
     }
   }, [user, setLocation]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const checkHealth = async () => {
+      try {
+        const res = await fetch(api.auth.health.path, { credentials: "include" });
+        if (!cancelled) setHealth(res.ok ? "ok" : "error");
+      } catch {
+        if (!cancelled) setHealth("error");
+      }
+    };
+    checkHealth();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   if (user) return null;
 
@@ -62,17 +81,45 @@ export default function Login() {
           </div>
           <h1 className="text-2xl font-display font-bold text-foreground">Welcome Back</h1>
           <p className="text-muted-foreground mt-2">Enter your username and 4-digit PIN</p>
+          <p className="text-xs text-muted-foreground mt-2 font-mono">Version 1.0</p>
+          <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground mt-2">
+            <span
+              className={`h-2.5 w-2.5 rounded-full ${
+                health === "ok"
+                  ? "bg-green-500"
+                  : health === "checking"
+                  ? "bg-amber-400"
+                  : "bg-red-500"
+              }`}
+            />
+            <span>
+              {health === "ok"
+                ? "Firebase connected"
+                : health === "checking"
+                ? "Checking Firebase..."
+                : "Firebase unreachable"}
+            </span>
+          </div>
         </div>
 
         <div className="space-y-6">
           <div className="space-y-2 text-center">
-            <input
-              type="text"
+            <select
+              id="username"
+              name="username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl bg-secondary/30 border border-border/50 text-center text-lg font-medium focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none"
-              placeholder="Username"
-            />
+              className="w-full px-4 py-3 rounded-xl bg-secondary/30 border border-border/50 text-center text-lg font-medium focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none appearance-none"
+            >
+              <option value="" disabled>
+                Select username
+              </option>
+              {presetUsers.map((u) => (
+                <option key={u} value={u}>
+                  {u}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="flex justify-center gap-4 mb-8">

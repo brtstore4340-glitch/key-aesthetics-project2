@@ -107,6 +107,8 @@ export default function CreateOrder() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input 
                 className="pl-9 w-[200px] bg-secondary/20 border-border/40"
+                name="productSearch"
+                id="productSearch"
                 placeholder="Search products..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
@@ -236,12 +238,16 @@ export default function CreateOrder() {
             <div className="space-y-3">
               <Input 
                 className="bg-secondary/20 border-border/40 focus:ring-primary/20 h-11"
+                name="doctorName"
+                id="doctorName"
                 placeholder="Doctor / Clinic Name"
                 value={customerInfo.doctorName}
                 onChange={e => setCustomerInfo({...customerInfo, doctorName: e.target.value})}
               />
               <textarea 
                 className="w-full bg-secondary/20 border border-border/40 rounded-xl px-4 py-3 text-sm focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/5 transition-all resize-none h-24"
+                name="address"
+                id="address"
                 placeholder="Detailed Delivery Address"
                 value={customerInfo.address}
                 onChange={e => setCustomerInfo({...customerInfo, address: e.target.value})}

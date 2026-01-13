@@ -3,13 +3,13 @@ import { Strategy as LocalStrategy } from "passport-local";
 import { type Express } from "express";
 import session from "express-session";
 import { storage } from "./storage";
-import { User } from "@shared/schema";
+import { User as DbUser } from "@shared/schema";
+
+type AuthUser = Omit<DbUser, "pin">;
 
 declare global {
   namespace Express {
-    interface User extends Omit<User, 'pin'> {
-      id: number;
-    }
+    interface User extends AuthUser {}
   }
 }
 
@@ -30,14 +30,19 @@ export function setupAuth(app: Express) {
   app.use(passport.session());
 
   passport.use(
-    new LocalStrategy(async (username, pin, done) => {
+    new LocalStrategy(
+      {
+        passwordField: "pin", // accept PIN field instead of default "password"
+      },
+      async (username, pin, done) => {
       const user = await storage.getUserByUsername(username);
       if (!user || user.pin !== pin) {
         return done(null, false);
       } else {
         return done(null, user);
       }
-    }),
+      },
+    ),
   );
 
   passport.serializeUser((user, done) => {
