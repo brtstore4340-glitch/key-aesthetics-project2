@@ -1,7 +1,7 @@
 import { useOrder, useUpdateOrder } from "@/hooks/use-orders";
 import { useAuth } from "@/hooks/use-auth";
 import { useRoute, Link } from "wouter";
-import { Loader2, ArrowLeft, CheckCircle2, Clock, XCircle, Download } from "lucide-react";
+import { Loader2, ArrowLeft, CheckCircle2, XCircle } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -28,8 +28,8 @@ export default function OrderDetail() {
     }
   };
 
-  const isStaff = user?.role === "staff";
   const isAdmin = user?.role === "admin";
+  const isAccounting = user?.role === "accounting";
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
@@ -56,27 +56,39 @@ export default function OrderDetail() {
               disabled={isPending}
               className="px-6 py-2.5 bg-blue-500 text-white rounded-xl font-medium shadow-lg shadow-blue-500/20 hover:bg-blue-600 transition-colors disabled:opacity-50"
             >
-              Submit Order
+              สั่งซื้อ
             </button>
           )}
 
-          {isAdmin && order.status === 'submitted' && (
+          {(isAdmin || isAccounting) && order.status === 'submitted' && (
             <>
               <button
                 onClick={() => handleStatusChange('verified')}
                 disabled={isPending}
                 className="px-6 py-2.5 bg-mint text-teal-950 rounded-xl font-medium shadow-lg shadow-mint/20 hover:bg-emerald-300 transition-colors disabled:opacity-50 flex items-center gap-2"
               >
-                <CheckCircle2 className="w-4 h-4" /> Verify
+                <CheckCircle2 className="w-4 h-4" /> กำลังจัด
               </button>
-              <button
-                onClick={() => handleStatusChange('cancelled')}
-                disabled={isPending}
-                className="px-6 py-2.5 bg-destructive/10 text-destructive border border-destructive/20 rounded-xl font-medium hover:bg-destructive/20 transition-colors disabled:opacity-50 flex items-center gap-2"
-              >
-                <XCircle className="w-4 h-4" /> Reject
-              </button>
+              {isAdmin && (
+                <button
+                  onClick={() => handleStatusChange('cancelled')}
+                  disabled={isPending}
+                  className="px-6 py-2.5 bg-destructive/10 text-destructive border border-destructive/20 rounded-xl font-medium hover:bg-destructive/20 transition-colors disabled:opacity-50 flex items-center gap-2"
+                >
+                  <XCircle className="w-4 h-4" /> ยกเลิก
+                </button>
+              )}
             </>
+          )}
+
+          {isAccounting && order.status === 'verified' && (
+            <button
+              onClick={() => handleStatusChange('submitted')}
+              disabled={isPending}
+              className="px-6 py-2.5 bg-blue-500/10 text-blue-600 border border-blue-500/20 rounded-xl font-medium hover:bg-blue-500/20 transition-colors disabled:opacity-50"
+            >
+              ย้อนกลับเป็นสั่งซื้อ
+            </button>
           )}
         </div>
       </div>
@@ -120,8 +132,16 @@ export default function OrderDetail() {
             <h3 className="font-semibold mb-4 text-sm uppercase text-muted-foreground tracking-wider">Customer Info</h3>
             <div className="space-y-4">
               <div>
-                <label className="text-xs text-muted-foreground">Doctor / Clinic</label>
+                <label className="text-xs text-muted-foreground">ผู้สั่ง</label>
                 <p className="font-medium">{order.customerInfo?.doctorName || "N/A"}</p>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground">เลขบัตรประชาชน</label>
+                <p className="font-medium">{order.customerInfo?.doctorId || "N/A"}</p>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground">เบอร์โทร</label>
+                <p className="font-medium">{order.customerInfo?.phone || "N/A"}</p>
               </div>
               <div>
                 <label className="text-xs text-muted-foreground">Address</label>
@@ -144,14 +164,14 @@ export default function OrderDetail() {
                {order.status !== 'draft' && (
                   <div className="relative pl-6">
                     <div className="absolute left-[-4px] top-1.5 w-2 h-2 rounded-full bg-blue-500 ring-4 ring-background"></div>
-                    <p className="text-sm font-medium">Submitted</p>
-                  </div>
+                <p className="text-sm font-medium">สั่งซื้อ</p>
+              </div>
                )}
 
                {order.status === 'verified' && (
                   <div className="relative pl-6">
                     <div className="absolute left-[-4px] top-1.5 w-2 h-2 rounded-full bg-mint ring-4 ring-background"></div>
-                    <p className="text-sm font-medium text-mint">Verified</p>
+                    <p className="text-sm font-medium text-mint">กำลังจัด</p>
                     {order.verifiedAt && <p className="text-xs text-muted-foreground">{format(new Date(order.verifiedAt), 'MMM d, h:mm a')}</p>}
                   </div>
                )}

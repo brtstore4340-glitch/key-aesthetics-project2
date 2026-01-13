@@ -103,13 +103,13 @@ export default function Login() {
         </div>
 
         <div className="space-y-6">
-          <div className="space-y-2 text-center">
+          <div className="space-y-2 text-center flex flex-col items-center">
             <select
               id="username"
               name="username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl bg-secondary/30 border border-border/50 text-center text-lg font-medium focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none appearance-none"
+              className="w-full max-w-[260px] px-4 py-3 rounded-xl bg-secondary/30 border border-border/50 text-center text-lg font-medium focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none appearance-none"
             >
               <option value="" disabled>
                 Select username
