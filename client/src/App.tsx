@@ -13,6 +13,7 @@ import Orders from "@/pages/Orders";
 import CreateOrder from "@/pages/CreateOrder";
 import OrderDetail from "@/pages/OrderDetail";
 import Products from "@/pages/Products";
+import Promotions from "@/pages/Promotions";
 import Settings from "@/pages/Settings";
 import NotFound from "@/pages/not-found";
 
@@ -58,6 +59,9 @@ function Router() {
       </Route>
       <Route path="/products">
         <ProtectedRoute component={Products} />
+      </Route>
+      <Route path="/promotions">
+        <ProtectedRoute component={Promotions} />
       </Route>
       <Route path="/settings">
         <ProtectedRoute component={Settings} />

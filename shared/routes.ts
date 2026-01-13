@@ -175,6 +175,34 @@ export const api = {
       },
     },
   },
+
+  // Promotions
+  promotions: {
+    list: {
+      method: 'GET' as const,
+      path: '/api/promotions',
+      responses: {
+        200: z.array(z.custom<typeof promotions.$inferSelect>()),
+      },
+    },
+    create: {
+      method: 'POST' as const,
+      path: '/api/promotions',
+      input: insertPromotionSchema,
+      responses: {
+        201: z.custom<typeof promotions.$inferSelect>(),
+        400: errorSchemas.validation,
+      },
+    },
+    delete: {
+      method: 'DELETE' as const,
+      path: '/api/promotions/:id',
+      responses: {
+        200: z.void(),
+        404: errorSchemas.notFound,
+      },
+    },
+  },
 };
 
 // === HELPER ===

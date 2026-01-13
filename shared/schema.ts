@@ -33,11 +33,11 @@ export const products = pgTable("products", {
 
 export const promotions = pgTable("promotions", {
   id: serial("id").primaryKey(),
-  code: text("code").notNull().unique(),
-  type: text("type", { enum: ["PERCENT_OFF", "FIXED_OFF", "buy_x_get_y"] }).notNull(),
-  value: decimal("value"), // For percent or fixed amount
-  details: text("details"),
+  name: text("name").notNull(),
+  productId: integer("product_id").references(() => products.id),
+  withdrawAmount: integer("withdraw_amount").notNull(),
   isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const orders = pgTable("orders", {
@@ -74,7 +74,7 @@ export const insertUserSchema = createInsertSchema(users).omit({ id: true, creat
 });
 export const insertCategorySchema = createInsertSchema(categories).omit({ id: true });
 export const insertProductSchema = createInsertSchema(products).omit({ id: true, createdAt: true });
-export const insertPromotionSchema = createInsertSchema(promotions).omit({ id: true });
+export const insertPromotionSchema = createInsertSchema(promotions).omit({ id: true, createdAt: true });
 export const insertOrderSchema = createInsertSchema(orders).omit({ 
   id: true, 
   createdAt: true, 

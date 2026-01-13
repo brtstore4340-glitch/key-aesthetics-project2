@@ -27,6 +27,7 @@ export function Sidebar() {
   ];
 
   if (user?.role === "admin") {
+    links.push({ href: "/promotions", label: "Promotions", icon: Gift });
     links.push({ href: "/settings", label: "Settings", icon: Settings });
   }
 

@@ -4,7 +4,8 @@ import {
   type User, type InsertUser,
   type Product, type InsertProduct,
   type Order, type InsertOrder,
-  type Category, type InsertCategory
+  type Category, type InsertCategory,
+  type Promotion, type InsertPromotion
 } from "@shared/schema";
 import { eq, desc } from "drizzle-orm";
 import session from "express-session";
@@ -36,6 +37,11 @@ export interface IStorage {
 
   // Categories
   getCategories(): Promise<Category[]>;
+
+  // Promotions
+  getPromotions(): Promise<Promotion[]>;
+  createPromotion(promotion: InsertPromotion): Promise<Promotion>;
+  deletePromotion(id: number): Promise<void>;
 
   // Session Store
   sessionStore: session.Store;
@@ -124,6 +130,20 @@ export class DatabaseStorage implements IStorage {
   // Categories
   async getCategories(): Promise<Category[]> {
     return await db.select().from(categories);
+  }
+
+  // Promotions
+  async getPromotions(): Promise<Promotion[]> {
+    return await db.select().from(promotions).orderBy(desc(promotions.createdAt));
+  }
+
+  async createPromotion(insertPromotion: InsertPromotion): Promise<Promotion> {
+    const [promotion] = await db.insert(promotions).values(insertPromotion).returning();
+    return promotion;
+  }
+
+  async deletePromotion(id: number): Promise<void> {
+    await db.delete(promotions).where(eq(promotions.id, id));
   }
 }
 

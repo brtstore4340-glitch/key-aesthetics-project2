@@ -137,6 +137,37 @@ export async function registerRoutes(
     res.json(categories);
   });
 
+  // Promotions (Admin only)
+  app.get(api.promotions.list.path, async (req, res) => {
+    if (!req.isAuthenticated() || (req.user as any).role !== 'admin') {
+      return res.status(403).send("Forbidden");
+    }
+    const promotions = await storage.getPromotions();
+    res.json(promotions);
+  });
+
+  app.post(api.promotions.create.path, async (req, res) => {
+    if (!req.isAuthenticated() || (req.user as any).role !== 'admin') {
+      return res.status(403).send("Forbidden");
+    }
+    try {
+      const input = api.promotions.create.input.parse(req.body);
+      const promotion = await storage.createPromotion(input);
+      res.status(201).json(promotion);
+    } catch (e) {
+      if (e instanceof z.ZodError) res.status(400).json(e.errors);
+      else throw e;
+    }
+  });
+
+  app.delete(api.promotions.delete.path, async (req, res) => {
+    if (!req.isAuthenticated() || (req.user as any).role !== 'admin') {
+      return res.status(403).send("Forbidden");
+    }
+    await storage.deletePromotion(Number(req.params.id));
+    res.sendStatus(200);
+  });
+
   // Seed Database (async, don't await strictly to not block startup if slow, or await if fast)
   seedDatabase().catch(err => console.error("Error seeding database:", err));
 
