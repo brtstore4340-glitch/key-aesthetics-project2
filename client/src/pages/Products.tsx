@@ -6,12 +6,47 @@ import * as XLSX from "xlsx";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { api } from "@shared/routes";
 import { useAuth } from "@/hooks/use-auth";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { insertProductSchema } from "@shared/schema";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useState } from "react";
 
 export default function Products() {
   const { data: products, isLoading } = useProducts();
   const { data: categories } = useCategories();
   const { toast } = useToast();
   const { user } = useAuth();
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+  const form = useForm({
+    resolver: zodResolver(insertProductSchema),
+    defaultValues: {
+      name: "",
+      price: "",
+      description: "",
+      categoryId: undefined,
+      images: [],
+      stock: 0,
+      isEnabled: true
+    }
+  });
+
+  const onSubmit = async (data: any) => {
+    try {
+      await apiRequest("POST", api.products.create.path, data);
+      queryClient.invalidateQueries({ queryKey: [api.products.list.path] });
+      toast({ title: "Product added successfully" });
+      setIsAddModalOpen(false);
+      form.reset();
+    } catch (err: any) {
+      toast({ title: "Failed to add product", description: err.message, variant: "destructive" });
+    }
+  };
 
   const handleExportTemplate = () => {
     const ws = XLSX.utils.json_to_sheet([
@@ -41,7 +76,8 @@ export default function Products() {
           images: row["Pic (001.jpg)"] ? [String(row["Pic (001.jpg)"])] : [],
           stock: parseInt(String(row["Unit"])) || 0,
           categoryId: categories?.[0]?.id || null, // Default to first category
-          description: ""
+          description: "",
+          isEnabled: true
         }));
 
         await apiRequest("POST", api.products.batchCreate.path, formattedProducts);
@@ -83,9 +119,102 @@ export default function Products() {
               </div>
             </>
           )}
-          <Button size="sm" className="gap-2">
-            <Plus className="w-4 h-4" /> Add Product
-          </Button>
+          
+          <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm" className="gap-2">
+                <Plus className="w-4 h-4" /> Add Product
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Add New Product</DialogTitle>
+              </DialogHeader>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Product Name</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="Enter product name" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="price"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Price (฿)</FormLabel>
+                          <FormControl>
+                            <Input {...field} type="number" step="0.01" placeholder="0.00" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="stock"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Stock</FormLabel>
+                          <FormControl>
+                            <Input {...field} type="number" onChange={e => field.onChange(parseInt(e.target.value))} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <FormField
+                    control={form.control}
+                    name="categoryId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Category</FormLabel>
+                        <Select onValueChange={v => field.onChange(parseInt(v))} value={field.value?.toString()}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select category" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {categories?.map(cat => (
+                              <SelectItem key={cat.id} value={cat.id.toString()}>{cat.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Description</FormLabel>
+                        <FormControl>
+                          <Textarea {...field} placeholder="Product description..." />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
+                    {form.formState.isSubmitting ? <Loader2 className="animate-spin" /> : "Save Product"}
+                  </Button>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
