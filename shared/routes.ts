@@ -150,6 +150,32 @@ export const api = {
         200: z.array(z.custom<typeof categories.$inferSelect>()),
       },
     },
+    create: {
+      method: 'POST' as const,
+      path: '/api/categories',
+      input: insertCategorySchema,
+      responses: {
+        201: z.custom<typeof categories.$inferSelect>(),
+        400: errorSchemas.validation,
+      },
+    },
+    update: {
+      method: 'PUT' as const,
+      path: '/api/categories/:id',
+      input: insertCategorySchema.partial(),
+      responses: {
+        200: z.custom<typeof categories.$inferSelect>(),
+        404: errorSchemas.notFound,
+      },
+    },
+    delete: {
+      method: 'DELETE' as const,
+      path: '/api/categories/:id',
+      responses: {
+        200: z.void(),
+        404: errorSchemas.notFound,
+      },
+    },
   },
 
   // Orders
