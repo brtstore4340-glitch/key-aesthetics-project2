@@ -107,6 +107,5 @@ export type InsertOrder = z.infer<typeof insertOrderSchema>;
 
 // API Request Types
 export type CreateProductRequest = InsertProduct;
-export type UpdateProductRequest = Partial<InsertProduct>;
 export type CreateOrderRequest = InsertOrder;
 export type UpdateOrderRequest = Partial<InsertOrder> & { status?: string }; // Allow status updates
