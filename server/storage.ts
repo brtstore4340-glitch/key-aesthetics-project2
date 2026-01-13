@@ -116,7 +116,7 @@ export class DatabaseStorage implements IStorage {
     return order;
   }
 
-  async updateOrder(id: number, updates: Partial<InsertOrder>): Promise<Order> {
+  async updateOrder(id: number, updates: any): Promise<Order> {
     const [order] = await db.update(orders).set(updates).where(eq(orders.id, id)).returning();
     return order;
   }
