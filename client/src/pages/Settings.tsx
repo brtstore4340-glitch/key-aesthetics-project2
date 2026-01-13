@@ -7,12 +7,11 @@ import { Settings as SettingsIcon, User, Shield, Bell, Save, UserPlus, Trash2, S
 import { useForm } from "react-hook-form";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { api, buildUrl } from "@shared/routes";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertUserSchema } from "@shared/schema";
+import { dbService } from "@/lib/services/dbService";
 
 export default function Settings() {
   const { user } = useAuth();
@@ -35,18 +34,19 @@ export default function Settings() {
     }
   });
 
-  const { data: usersList, isLoading: isLoadingUsers } = useQuery({
-    queryKey: [api.users.list.path],
+  const queryClient = useQueryClient();
+  const { data: usersList } = useQuery({
+    queryKey: ["users"],
+    queryFn: async () => dbService.listUsers(),
     enabled: user?.role === "admin",
   });
 
   const createUserMutation = useMutation({
     mutationFn: async (data: any) => {
-      const res = await apiRequest("POST", api.users.create.path, data);
-      return res.json();
+      return dbService.createUser(data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [api.users.list.path] });
+      queryClient.invalidateQueries({ queryKey: ["users"] });
       toast({ title: "User created", description: "New user added successfully." });
       newUserForm.reset();
     },
@@ -56,11 +56,11 @@ export default function Settings() {
   });
 
   const deleteUserMutation = useMutation({
-    mutationFn: async (id: number) => {
-      await apiRequest("DELETE", buildUrl(api.users.delete.path, { id }));
+    mutationFn: async (id: string) => {
+      await dbService.deleteUser(id);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [api.users.list.path] });
+      queryClient.invalidateQueries({ queryKey: ["users"] });
       toast({ title: "User deleted" });
     }
   });
