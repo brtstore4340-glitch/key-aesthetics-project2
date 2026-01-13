@@ -1,29 +1,47 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { api, buildUrl } from "@shared/routes";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertPromotionSchema, type Product, type Promotion } from "@shared/schema";
+import { insertPromotionSchema, type Promotion } from "@/lib/schema";
 import { Loader2, Plus, Trash2, Tag, Gift } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { createPromotion, deletePromotion, getPromotions } from "@/lib/mock-data";
+import { useProducts } from "@/hooks/use-products";
 
 export default function Promotions() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { data: products } = useProducts();
 
   const { data: promotions, isLoading: isLoadingPromos } = useQuery<Promotion[]>({
-    queryKey: [api.promotions.list.path],
-    enabled: user?.role === "admin",
-  });
-
-  const { data: products } = useQuery<Product[]>({
-    queryKey: [api.products.list.path],
+    queryKey: ["promotions"],
+    queryFn: async () => getPromotions(),
+    enabled: user?.role === "admin" || user?.role === "staff",
   });
 
   const form = useForm({
@@ -32,39 +50,45 @@ export default function Promotions() {
       name: "",
       productId: undefined as unknown as number,
       withdrawAmount: 0,
-    }
+    },
   });
 
   const createMutation = useMutation({
-    mutationFn: async (data: any) => {
-      const res = await apiRequest("POST", api.promotions.create.path, data);
-      return res.json();
-    },
+    mutationFn: async (data: any) => createPromotion(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [api.promotions.list.path] });
+      queryClient.invalidateQueries({ queryKey: ["promotions"] });
       toast({ title: "Promotion created successfully" });
       form.reset();
     },
     onError: (err: any) => {
       toast({ title: "Error", description: err.message, variant: "destructive" });
-    }
+    },
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      await apiRequest("DELETE", buildUrl(api.promotions.delete.path, { id }));
+      deletePromotion(id);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [api.promotions.list.path] });
+      queryClient.invalidateQueries({ queryKey: ["promotions"] });
       toast({ title: "Promotion deleted" });
-    }
+    },
   });
 
   if (user?.role !== "admin" && user?.role !== "staff") {
-    return <div className="p-8 text-center">Unauthorized. Only Admins and Staff can access this page.</div>;
+    return (
+      <div className="p-8 text-center">
+        Unauthorized. Only Admins and Staff can access this page.
+      </div>
+    );
   }
 
-  if (isLoadingPromos) return <div className="flex justify-center p-12"><Loader2 className="animate-spin text-primary" /></div>;
+  if (isLoadingPromos)
+    return (
+      <div className="flex justify-center p-12">
+        <Loader2 className="animate-spin text-primary" />
+      </div>
+    );
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -91,7 +115,10 @@ export default function Promotions() {
             </CardHeader>
             <CardContent className="pt-6">
               <Form {...form}>
-                <form onSubmit={form.handleSubmit((data) => createMutation.mutate(data))} className="space-y-4">
+                <form
+                  onSubmit={form.handleSubmit((data) => createMutation.mutate(data))}
+                  className="space-y-4"
+                >
                   <FormField
                     control={form.control}
                     name="name"
@@ -112,8 +139,8 @@ export default function Promotions() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Select Product</FormLabel>
-                        <Select 
-                          onValueChange={(val) => field.onChange(parseInt(val))} 
+                        <Select
+                          onValueChange={(val) => field.onChange(parseInt(val))}
                           value={field.value?.toString() || ""}
                         >
                           <FormControl>
@@ -141,10 +168,10 @@ export default function Promotions() {
                       <FormItem>
                         <FormLabel>Withdraw Amount</FormLabel>
                         <FormControl>
-                          <Input 
-                            type="number" 
-                            {...field} 
-                            onChange={(e) => field.onChange(parseInt(e.target.value))} 
+                          <Input
+                            type="number"
+                            {...field}
+                            onChange={(e) => field.onChange(parseInt(e.target.value))}
                           />
                         </FormControl>
                         <FormMessage />
@@ -153,7 +180,11 @@ export default function Promotions() {
                   />
 
                   <Button type="submit" className="w-full" disabled={createMutation.isPending}>
-                    {createMutation.isPending ? <Loader2 className="animate-spin" /> : "Create Promotion"}
+                    {createMutation.isPending ? (
+                      <Loader2 className="animate-spin" />
+                    ) : (
+                      "Create Promotion"
+                    )}
                   </Button>
                 </form>
               </Form>
@@ -165,13 +196,16 @@ export default function Promotions() {
           <h2 className="text-xl font-display font-bold flex items-center gap-2">
             <Tag className="w-5 h-5 text-primary" /> Active Promotions
           </h2>
-          {(!promotions || promotions.length === 0) ? (
+          {!promotions || promotions.length === 0 ? (
             <div className="p-8 text-center bg-secondary/10 rounded-2xl border border-dashed border-border/40">
               <p className="text-muted-foreground">No promotions found.</p>
             </div>
           ) : (
             promotions.map((promo: Promotion) => (
-              <Card key={promo.id} className="border-border/40 overflow-hidden group hover:border-primary/50 transition-all">
+              <Card
+                key={promo.id}
+                className="border-border/40 overflow-hidden group hover:border-primary/50 transition-all"
+              >
                 <div className="flex items-center gap-4 p-4">
                   <div className="p-3 rounded-xl bg-primary/10 text-primary">
                     <Gift className="w-6 h-6" />
@@ -179,13 +213,14 @@ export default function Promotions() {
                   <div className="flex-1 min-w-0">
                     <h3 className="font-bold truncate">{promo.name}</h3>
                     <p className="text-xs text-muted-foreground">
-                      {products?.find(p => p.id === promo.productId)?.name || "Unknown Product"} • {promo.withdrawAmount} Units
+                      {products?.find((p) => p.id === promo.productId)?.name ||
+                        "Unknown Product"} • {promo.withdrawAmount} Units
                     </p>
                   </div>
                   {user?.role === "admin" && (
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       className="text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
                       onClick={() => deleteMutation.mutate(promo.id)}
                     >

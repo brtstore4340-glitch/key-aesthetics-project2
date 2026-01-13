@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, type LoginInput } from "@shared/routes";
+import { type LoginInput } from "@/lib/schema";
+import { authenticateUser, getCurrentUser, logoutUser } from "@/lib/mock-data";
 import { useLocation } from "wouter";
 
 export function useAuth() {
@@ -7,48 +8,28 @@ export function useAuth() {
   const [_, setLocation] = useLocation();
 
   const { data: user, isLoading, error } = useQuery({
-    queryKey: ["/api/user"],
-    queryFn: async () => {
-      const res = await fetch(api.auth.me.path, { credentials: "include" });
-      if (res.status === 401) return null;
-      if (!res.ok) throw new Error("Failed to fetch user");
-      return api.auth.me.responses[200].parse(await res.json());
-    },
+    queryKey: ["auth-user"],
+    queryFn: async () => getCurrentUser(),
     retry: false,
-    staleTime: Infinity, 
+    staleTime: Infinity,
   });
 
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginInput) => {
-      const res = await fetch(api.auth.login.path, {
-        method: api.auth.login.method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(credentials),
-        credentials: "include",
-      });
-      
-      if (!res.ok) {
-        if (res.status === 401) throw new Error("Invalid credentials");
-        throw new Error("Login failed");
-      }
-      return api.auth.login.responses[200].parse(await res.json());
+      return authenticateUser(credentials.username, credentials.pin);
     },
     onSuccess: (data) => {
-      queryClient.setQueryData(["/api/user"], data);
+      queryClient.setQueryData(["auth-user"], data);
       setLocation("/");
     },
   });
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch(api.auth.logout.path, { 
-        method: api.auth.logout.method,
-        credentials: "include" 
-      });
-      if (!res.ok) throw new Error("Logout failed");
+      logoutUser();
     },
     onSuccess: () => {
-      queryClient.setQueryData(["/api/user"], null);
+      queryClient.setQueryData(["auth-user"], null);
       setLocation("/login");
     },
   });

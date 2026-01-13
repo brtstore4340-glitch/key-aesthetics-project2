@@ -1,28 +1,35 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/use-auth";
-import { Settings as SettingsIcon, User, Shield, Bell, Save, UserPlus, Trash2, ShieldCheck } from "lucide-react";
+import {
+  Settings as SettingsIcon,
+  User,
+  Shield,
+  Save,
+  UserPlus,
+  Trash2,
+  ShieldCheck,
+} from "lucide-react";
 import { useForm } from "react-hook-form";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { api, buildUrl } from "@shared/routes";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertUserSchema } from "@shared/schema";
+import { insertUserSchema } from "@/lib/schema";
+import { createUser, deleteUser, getUsers } from "@/lib/mock-data";
 
 export default function Settings() {
   const { user } = useAuth();
   const { toast } = useToast();
-  
+
   const form = useForm({
     defaultValues: {
       name: user?.name || "",
       username: user?.username || "",
-    }
+    },
   });
 
   const newUserForm = useForm({
@@ -32,40 +39,38 @@ export default function Settings() {
       name: "",
       role: "staff",
       pin: "",
-    }
+    },
   });
 
-  const { data: usersList, isLoading: isLoadingUsers } = useQuery({
-    queryKey: [api.users.list.path],
+  const { data: usersList } = useQuery({
+    queryKey: ["users"],
+    queryFn: async () => getUsers(),
     enabled: user?.role === "admin",
   });
 
   const createUserMutation = useMutation({
-    mutationFn: async (data: any) => {
-      const res = await apiRequest("POST", api.users.create.path, data);
-      return res.json();
-    },
+    mutationFn: async (data: any) => createUser(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [api.users.list.path] });
+      queryClient.invalidateQueries({ queryKey: ["users"] });
       toast({ title: "User created", description: "New user added successfully." });
       newUserForm.reset();
     },
     onError: (err: any) => {
       toast({ title: "Error", description: err.message, variant: "destructive" });
-    }
+    },
   });
 
   const deleteUserMutation = useMutation({
     mutationFn: async (id: number) => {
-      await apiRequest("DELETE", buildUrl(api.users.delete.path, { id }));
+      deleteUser(id);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [api.users.list.path] });
+      queryClient.invalidateQueries({ queryKey: ["users"] });
       toast({ title: "User deleted" });
-    }
+    },
   });
 
-  const onSubmit = (data: any) => {
+  const onSubmit = () => {
     toast({
       title: "Settings updated",
       description: "Your profile changes have been saved successfully.",
@@ -249,10 +254,10 @@ export default function Settings() {
                           <p className="font-medium">{u.name}</p>
                           <p className="text-xs text-muted-foreground">@{u.username} • {u.role}</p>
                         </div>
-                        {u.id !== user.id && (
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
+                        {u.id !== user?.id && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             className="text-destructive hover:bg-destructive/10"
                             onClick={() => deleteUserMutation.mutate(u.id)}
                           >

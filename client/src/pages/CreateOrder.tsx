@@ -5,7 +5,7 @@ import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Plus, Minus, Trash2, ShoppingBag, ArrowRight, Search, Filter } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { type Product } from "@shared/schema";
+import { type Product } from "@/lib/schema";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

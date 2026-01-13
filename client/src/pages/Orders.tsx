@@ -9,7 +9,7 @@ import { useState } from "react";
 export default function Orders() {
   const { user } = useAuth();
   const [filter, setFilter] = useState<string>(user?.role === 'accounting' ? "submitted" : "all");
-  const { data: orders, isLoading } = useOrders(filter === "all" ? undefined : filter, user?.role);
+  const { data: orders, isLoading } = useOrders(filter === "all" ? undefined : filter);
 
   if (isLoading) {
     return <div className="flex justify-center p-12"><Loader2 className="animate-spin text-primary" /></div>;
