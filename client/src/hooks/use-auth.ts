@@ -1,55 +1,47 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, type LoginInput } from "@shared/routes";
+import { useEffect, useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
+import { authService, type AuthUser } from "@/lib/services/authService";
 
 export function useAuth() {
-  const queryClient = useQueryClient();
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
   const [_, setLocation] = useLocation();
 
-  const { data: user, isLoading, error } = useQuery({
-    queryKey: ["/api/user"],
-    queryFn: async () => {
-      const res = await fetch(api.auth.me.path, { credentials: "include" });
-      if (res.status === 401) return null;
-      if (!res.ok) throw new Error("Failed to fetch user");
-      return api.auth.me.responses[200].parse(await res.json());
-    },
-    retry: false,
-    staleTime: Infinity, 
-  });
+  useEffect(() => {
+    const unsubscribe = authService.onAuthStateChange((nextUser) => {
+      setUser(nextUser);
+      setIsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const loginMutation = useMutation({
-    mutationFn: async (credentials: LoginInput) => {
-      const res = await fetch(api.auth.login.path, {
-        method: api.auth.login.method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(credentials),
-        credentials: "include",
-      });
-      
-      if (!res.ok) {
-        if (res.status === 401) throw new Error("Invalid credentials");
-        throw new Error("Login failed");
-      }
-      return api.auth.login.responses[200].parse(await res.json());
+    mutationFn: async ({ username, pin }: { username: string; pin: string }) => {
+      return authService.loginWithPin({ username, pin });
     },
     onSuccess: (data) => {
-      queryClient.setQueryData(["/api/user"], data);
+      setUser(data);
+      setError(null);
       setLocation("/");
+    },
+    onError: (err: Error) => {
+      setError(err);
     },
   });
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch(api.auth.logout.path, { 
-        method: api.auth.logout.method,
-        credentials: "include" 
-      });
-      if (!res.ok) throw new Error("Logout failed");
+      await authService.logout();
     },
     onSuccess: () => {
-      queryClient.setQueryData(["/api/user"], null);
+      setUser(null);
       setLocation("/login");
+    },
+    onError: (err: Error) => {
+      setError(err);
     },
   });
 

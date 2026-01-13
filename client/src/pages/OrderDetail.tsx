@@ -1,4 +1,4 @@
-import { useOrder, useUpdateOrder } from "@/hooks/use-orders";
+import { useOrder, useUpdateOrderStatus } from "@/hooks/use-orders";
 import { useAuth } from "@/hooks/use-auth";
 import { useRoute, Link } from "wouter";
 import { Loader2, ArrowLeft, CheckCircle2, Clock, XCircle, Download } from "lucide-react";
@@ -7,11 +7,11 @@ import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
 export default function OrderDetail() {
-  const [match, params] = useRoute("/orders/:id");
-  const id = params ? parseInt(params.id) : 0;
-  
+  const [, params] = useRoute("/orders/:id");
+  const id = params?.id;
+
   const { data: order, isLoading } = useOrder(id);
-  const { mutateAsync: updateOrder, isPending } = useUpdateOrder();
+  const { mutateAsync: updateOrder, isPending } = useUpdateOrderStatus();
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -20,7 +20,8 @@ export default function OrderDetail() {
 
   const handleStatusChange = async (newStatus: string) => {
     try {
-      await updateOrder({ id, status: newStatus });
+      if (!id) return;
+      await updateOrder({ id, status: newStatus, verifiedBy: user?.id });
       toast({ title: "Status updated", description: `Order marked as ${newStatus}` });
     } catch (err: any) {
       toast({ title: "Update failed", description: err.message, variant: "destructive" });
@@ -43,7 +44,7 @@ export default function OrderDetail() {
             <StatusBadge status={order.status || 'draft'} />
           </div>
           <p className="text-muted-foreground">
-            Created on {format(new Date(order.createdAt!), 'MMMM d, yyyy')} at {format(new Date(order.createdAt!), 'h:mm a')}
+            Created on {order.createdAt ? format(order.createdAt, "MMMM d, yyyy") : "-"} at {order.createdAt ? format(order.createdAt, "h:mm a") : "-"}
           </p>
         </div>
 

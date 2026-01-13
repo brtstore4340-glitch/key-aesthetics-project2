@@ -9,7 +9,7 @@ import { format } from "date-fns";
 export default function Dashboard() {
   const { user } = useAuth();
   // Fetch relevant orders based on role
-  const { data: orders, isLoading } = useOrders(undefined, user?.role);
+  const { data: orders, isLoading } = useOrders(undefined, user?.role, user?.id);
 
   if (isLoading) {
     return (
@@ -32,7 +32,7 @@ export default function Dashboard() {
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-display font-bold text-foreground">
-            Good {new Date().getHours() < 12 ? 'Morning' : 'Evening'}, {user?.name.split(' ')[0]}
+            Good {new Date().getHours() < 12 ? "Morning" : "Evening"}, {user?.name?.split(" ")[0] ?? "there"}
           </h1>
           <p className="text-muted-foreground mt-1">Here's what's happening today.</p>
         </div>
@@ -88,12 +88,12 @@ export default function Dashboard() {
                   <div className="flex flex-col md:flex-row md:items-center gap-4 justify-between">
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground font-display font-bold">
-                        #{order.id}
+                        #{order.orderNo}
                       </div>
                       <div>
                         <h4 className="font-semibold text-foreground">{order.orderNo}</h4>
                         <p className="text-sm text-muted-foreground">
-                          {format(new Date(order.createdAt!), 'MMM d, yyyy • h:mm a')}
+                          {order.createdAt ? format(order.createdAt, "MMM d, yyyy • h:mm a") : "-"}
                         </p>
                       </div>
                     </div>

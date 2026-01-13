@@ -3,19 +3,19 @@ import { useAuth } from "@/hooks/use-auth";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Link } from "wouter";
 import { format } from "date-fns";
-import { Loader2, Search, Filter } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useState } from "react";
 
 export default function Orders() {
   const { user } = useAuth();
-  const [filter, setFilter] = useState<string>(user?.role === 'accounting' ? "submitted" : "all");
-  const { data: orders, isLoading } = useOrders(filter === "all" ? undefined : filter, user?.role);
+  const [filter, setFilter] = useState<string>(user?.role === "accounting" ? "submitted" : "all");
+  const { data: orders, isLoading } = useOrders(filter === "all" ? undefined : filter, user?.role, user?.id);
 
   if (isLoading) {
     return <div className="flex justify-center p-12"><Loader2 className="animate-spin text-primary" /></div>;
   }
 
-  const filters = user?.role === 'accounting' 
+  const filters = user?.role === "accounting" 
     ? [{ id: "submitted", label: "To Pack" }, { id: "verified", label: "Shipped" }]
     : [
         { id: "all", label: "All Orders" },
@@ -24,8 +24,8 @@ export default function Orders() {
         { id: "verified", label: "Verified" },
       ];
 
-  const pageTitle = user?.role === 'accounting' ? "Packing & Shipping" : "Orders";
-  const pageDesc = user?.role === 'accounting' ? "Manage outgoing shipments and packing lists" : "Manage and track order status";
+  const pageTitle = user?.role === "accounting" ? "Packing & Shipping" : "Orders";
+  const pageDesc = user?.role === "accounting" ? "Manage outgoing shipments and packing lists" : "Manage and track order status";
 
   return (
     <div className="space-y-6">
@@ -75,8 +75,8 @@ export default function Orders() {
                   </td>
                   <td className="p-4">
                     <div className="flex flex-col">
-                      <span className="text-sm text-foreground">{format(new Date(order.createdAt!), 'MMM d, yyyy')}</span>
-                      <span className="text-xs text-muted-foreground">{format(new Date(order.createdAt!), 'h:mm a')}</span>
+                      <span className="text-sm text-foreground">{order.createdAt ? format(order.createdAt, "MMM d, yyyy") : "-"}</span>
+                      <span className="text-xs text-muted-foreground">{order.createdAt ? format(order.createdAt, "h:mm a") : "-"}</span>
                     </div>
                   </td>
                   <td className="p-4">
