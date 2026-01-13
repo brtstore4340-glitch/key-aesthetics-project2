@@ -73,7 +73,11 @@ export const insertUserSchema = createInsertSchema(users).omit({ id: true, creat
   pin: z.string().length(4, "PIN must be exactly 4 digits").regex(/^\d+$/, "PIN must contain only digits")
 });
 export const insertCategorySchema = createInsertSchema(categories).omit({ id: true });
-export const insertProductSchema = createInsertSchema(products).omit({ id: true, createdAt: true });
+export const insertProductSchema = createInsertSchema(products).omit({ id: true, createdAt: true }).extend({
+  price: z.string().min(1, "Price is required").regex(/^\d+(\.\d{1,2})?$/, "Invalid price format"),
+  stock: z.number().min(0),
+  categoryId: z.number().int().positive()
+});
 export const insertPromotionSchema = createInsertSchema(promotions).omit({ id: true, createdAt: true });
 export const insertOrderSchema = createInsertSchema(orders).omit({ 
   id: true, 

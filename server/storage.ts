@@ -33,7 +33,7 @@ export interface IStorage {
   getOrdersByUser(userId: number): Promise<Order[]>;
   getOrder(id: number): Promise<Order | undefined>;
   createOrder(order: InsertOrder): Promise<Order>;
-  updateOrder(id: number, order: Partial<InsertOrder>): Promise<Order>;
+  updateOrder(id: number, order: any): Promise<Order>;
 
   // Categories
   getCategories(): Promise<Category[]>;
@@ -92,12 +92,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createProduct(insertProduct: InsertProduct): Promise<Product> {
-    const [product] = await db.insert(products).values(insertProduct).returning();
+    const [product] = await db.insert(products).values(insertProduct as any).returning();
     return product;
   }
 
   async updateProduct(id: number, updates: Partial<InsertProduct>): Promise<Product> {
-    const [product] = await db.update(products).set(updates).where(eq(products.id, id)).returning();
+    const [product] = await db.update(products).set(updates as any).where(eq(products.id, id)).returning();
     return product;
   }
 
@@ -116,9 +116,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createOrder(insertOrder: InsertOrder): Promise<Order> {
-    // Generate orderNo if not provided (though schema expects it, let's auto-gen here if needed or assume caller handles)
     const orderNo = `ORD-${Date.now()}-${Math.floor(Math.random()*1000)}`;
-    const [order] = await db.insert(orders).values({ ...insertOrder, orderNo }).returning();
+    const [order] = await db.insert(orders).values({ ...insertOrder, orderNo } as any).returning();
     return order;
   }
 

@@ -6,10 +6,10 @@ import * as XLSX from "xlsx";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { api } from "@shared/routes";
 import { useAuth } from "@/hooks/use-auth";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertProductSchema } from "@shared/schema";
+import { insertProductSchema, type Product, type Category } from "@shared/schema";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -29,8 +29,8 @@ export default function Products() {
       name: "",
       price: "",
       description: "",
-      categoryId: undefined,
-      images: [],
+      categoryId: undefined as unknown as number,
+      images: [] as string[],
       stock: 0,
       isEnabled: true
     }
@@ -129,6 +129,9 @@ export default function Products() {
             <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
                 <DialogTitle>Add New Product</DialogTitle>
+                <DialogDescription>
+                  Enter the details of the new product to add it to the inventory.
+                </DialogDescription>
               </DialogHeader>
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -186,7 +189,7 @@ export default function Products() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {categories?.map(cat => (
+                            {categories?.map((cat: Category) => (
                               <SelectItem key={cat.id} value={cat.id.toString()}>{cat.name}</SelectItem>
                             ))}
                           </SelectContent>
@@ -202,7 +205,7 @@ export default function Products() {
                       <FormItem>
                         <FormLabel>Description</FormLabel>
                         <FormControl>
-                          <Textarea {...field} placeholder="Product description..." />
+                          <Textarea {...field} value={field.value || ""} placeholder="Product description..." />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -219,7 +222,7 @@ export default function Products() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {products?.map((product) => (
+        {products?.map((product: Product) => (
           <div key={product.id} className="group bg-card border border-border/40 rounded-2xl overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
             <div className="aspect-[4/3] bg-secondary/20 relative overflow-hidden">
               <img 
@@ -242,10 +245,10 @@ export default function Products() {
                 </p>
               </div>
               
-              <div className="flex items-center justify-between pt-2 border-t border-border/50">
-                <span className="text-lg font-bold text-primary">${Number(product.price).toFixed(2)}</span>
+              <div className="flex items-center justify-between pt-2 border-t border-border/40">
+                <span className="text-lg font-bold text-primary">฿{Number(product.price).toLocaleString()}</span>
                 <span className="text-xs text-muted-foreground uppercase tracking-wider">
-                  {categories?.find(c => c.id === product.categoryId)?.name || "Uncategorized"}
+                  {categories?.find((c: Category) => c.id === product.categoryId)?.name || "Uncategorized"}
                 </span>
               </div>
             </div>
