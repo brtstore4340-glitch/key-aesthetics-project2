@@ -14,11 +14,19 @@ declare global {
 }
 
 export function setupAuth(app: Express) {
+  const isProd = process.env.NODE_ENV === "production";
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || "r3pl1t_s3cr3t_k3y",
     resave: false,
     saveUninitialized: false,
     store: storage.sessionStore,
+    cookie: {
+      httpOnly: true,
+      // Secure/SameSite need to loosen in local dev (http) so the cookie sticks
+      secure: isProd,
+      sameSite: isProd ? "none" : "lax",
+      maxAge: 24 * 60 * 60 * 1000, // 1 day
+    },
   };
 
   if (app.get("env") === "production") {
@@ -35,7 +43,23 @@ export function setupAuth(app: Express) {
         passwordField: "pin", // accept PIN field instead of default "password"
       },
       async (username, pin, done) => {
-      const user = await storage.getUserByUsername(username);
+      let user = await storage.getUserByUsername(username);
+
+      // Auto-create default accounts if they are missing but correct PIN is provided
+      const defaultUsers = [
+        { username: "admin", pin: "1111", role: "admin", name: "Admin User" },
+        { username: "staff", pin: "2222", role: "staff", name: "Staff User" },
+        { username: "account", pin: "3333", role: "accounting", name: "Accounting User" },
+        { username: "aaaaa", pin: "1111", role: "staff", name: "User AAAAA" },
+      ];
+
+      if (!user) {
+        const match = defaultUsers.find((u) => u.username === username && u.pin === pin);
+        if (match) {
+          user = await storage.createUser(match);
+        }
+      }
+
       if (!user || user.pin !== pin) {
         return done(null, false);
       } else {
