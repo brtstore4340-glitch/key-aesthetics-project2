@@ -23,7 +23,6 @@ export interface IStorage {
   getUsers(): Promise<User[]>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-  updateUser(id: number, user: Partial<InsertUser>): Promise<User>;
   deleteUser(id: number): Promise<void>;
   
   // Products
@@ -198,17 +197,10 @@ class FirestoreStorage implements IStorage {
     await this.users.doc(String(id)).set({
       ...insertUser,
       id,
-      isActive: insertUser.isActive ?? true,
       createdAt: Timestamp.now(),
     });
     const created = await this.users.doc(String(id)).get();
     return deserializeDates<User>(created.data())!;
-  }
-
-  async updateUser(id: number, user: Partial<InsertUser>): Promise<User> {
-    await this.users.doc(String(id)).set(user, { merge: true });
-    const updated = await this.users.doc(String(id)).get();
-    return deserializeDates<User>(updated.data())!;
   }
 
   async deleteUser(id: number): Promise<void> {

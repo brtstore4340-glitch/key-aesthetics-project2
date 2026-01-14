@@ -36,7 +36,7 @@ export function setupAuth(app: Express) {
       },
       async (username, pin, done) => {
       const user = await storage.getUserByUsername(username);
-      if (!user || user.pin !== pin || user.isActive === false) {
+      if (!user || user.pin !== pin) {
         return done(null, false);
       } else {
         return done(null, user);
