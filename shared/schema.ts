@@ -10,7 +10,6 @@ export const users = pgTable("users", {
   pin: text("pin").notNull(),
   role: text("role", { enum: ["admin", "staff", "accounting"] }).notNull().default("staff"),
   name: text("name").notNull(),
-  isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -73,8 +72,7 @@ export const orders = pgTable("orders", {
 // === SCHEMAS ===
 
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true }).extend({
-  pin: z.string().length(4, "PIN must be exactly 4 digits").regex(/^\d+$/, "PIN must contain only digits"),
-  isActive: z.boolean().optional().default(true),
+  pin: z.string().length(4, "PIN must be exactly 4 digits").regex(/^\d+$/, "PIN must contain only digits")
 });
 export const insertCategorySchema = createInsertSchema(categories).omit({ id: true });
 export const insertProductSchema = createInsertSchema(products).omit({ id: true, createdAt: true }).extend({
