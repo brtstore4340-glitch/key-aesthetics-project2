@@ -9,7 +9,7 @@
   },
   "scripts": {
     "dev": "tsx watch shared/server/index.ts",
-    "build": "node script/build.js"
+    "build": "tsx script/build.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
