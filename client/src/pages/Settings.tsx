@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/use-auth";
-import { Settings as SettingsIcon, User, Shield, Save, UserPlus, Trash2, ShieldCheck, Tags, Upload, FileDown } from "lucide-react";
+import { Settings as SettingsIcon, User, Shield, Save, UserPlus, Trash2, ShieldCheck, Tags } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
@@ -14,7 +14,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertCategorySchema, insertUserSchema, type Category } from "@shared/schema";
 import { useEffect, useState } from "react";
-import * as XLSX from "xlsx";
 
 export default function Settings() {
   const { user } = useAuth();
@@ -149,71 +148,6 @@ export default function Settings() {
     });
   };
 
-  const handleUserTemplateExport = () => {
-    const ws = XLSX.utils.json_to_sheet([
-      { Username: "putthipat", "Full Name": "Putthipat", Role: "staff", PIN: "1234", Active: "TRUE" },
-    ]);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Template");
-    XLSX.writeFile(wb, "user_template.xlsx");
-  };
-
-  const handleUserFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      try {
-        const data = new Uint8Array(event.target?.result as ArrayBuffer);
-        const workbook = XLSX.read(data, { type: "array" });
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const json = XLSX.utils.sheet_to_json(worksheet) as Record<string, string>[];
-
-        const formattedUsers = json
-          .map((row) => {
-            const rawUsername = String(row.Username ?? row.username ?? "").trim();
-            const rawName = String(row["Full Name"] ?? row.Name ?? row.name ?? rawUsername).trim();
-            const rawRole = String(row.Role ?? row.role ?? "staff").toLowerCase();
-            const pinFallback = rawRole === "accounting" ? "8888" : "1234";
-            const rawPin = String(row.PIN ?? row.Pin ?? row.pin ?? row.Password ?? pinFallback).trim();
-            const rawActive = String(row.Active ?? row.active ?? "true").toLowerCase();
-            const isActive = !["false", "0", "no"].includes(rawActive);
-
-            if (!rawUsername || !rawPin || !rawName) return null;
-
-            return {
-              username: rawUsername,
-              name: rawName,
-              role: ["admin", "staff", "accounting"].includes(rawRole) ? rawRole : "staff",
-              pin: rawPin,
-              isActive,
-            };
-          })
-          .filter(
-            (
-              entry,
-            ): entry is { username: string; name: string; role: string; pin: string; isActive: boolean } => Boolean(entry),
-          );
-
-        if (!formattedUsers.length) {
-          toast({ title: "No valid rows found", description: "Please check the template format.", variant: "destructive" });
-          return;
-        }
-
-        await apiRequest("POST", api.users.batchCreate.path, formattedUsers);
-        queryClient.invalidateQueries({ queryKey: [api.users.list.path] });
-        toast({ title: "Users uploaded", description: `Uploaded ${formattedUsers.length} users.` });
-      } catch (err: any) {
-        toast({ title: "Upload Failed", description: err.message, variant: "destructive" });
-      } finally {
-        e.target.value = "";
-      }
-    };
-    reader.readAsArrayBuffer(file);
-  };
-
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex items-center justify-between">
@@ -307,34 +241,13 @@ export default function Settings() {
             <>
               <Card className="border-border/40 shadow-xl shadow-black/20 overflow-hidden">
                 <CardHeader className="bg-primary/5 border-b border-border/40">
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-primary/10 text-primary">
-                        <UserPlus className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <CardTitle>Add New User</CardTitle>
-                        <CardDescription>Create a new staff or accounting account</CardDescription>
-                      </div>
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                      <UserPlus className="w-5 h-5" />
                     </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Button variant="outline" size="sm" onClick={handleUserTemplateExport} className="gap-2">
-                        <FileDown className="w-4 h-4" /> Template
-                      </Button>
-                      <div className="relative">
-                        <input
-                          type="file"
-                          accept=".xlsx, .xls"
-                          onChange={handleUserFileUpload}
-                          className="absolute inset-0 opacity-0 cursor-pointer"
-                          title="Upload Excel"
-                          name="userUpload"
-                          id="userUpload"
-                        />
-                        <Button variant="outline" size="sm" className="gap-2 pointer-events-none">
-                          <Upload className="w-4 h-4" /> Batch Upload
-                        </Button>
-                      </div>
+                    <div>
+                      <CardTitle>Add New User</CardTitle>
+                      <CardDescription>Create a new staff or accounting account</CardDescription>
                     </div>
                   </div>
                 </CardHeader>
@@ -416,10 +329,7 @@ export default function Settings() {
                       <div key={u.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/20 border border-border/40">
                         <div>
                           <p className="font-medium">{u.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            @{u.username} • {u.role}
-                            {u.isActive === false && <span className="ml-2 text-destructive">Disabled</span>}
-                          </p>
+                          <p className="text-xs text-muted-foreground">@{u.username} • {u.role}</p>
                         </div>
                         {u.id !== user.id && (
                           <Button 
