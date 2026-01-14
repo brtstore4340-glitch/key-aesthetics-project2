@@ -170,13 +170,32 @@ export async function registerRoutes(
     }
     try {
       const input = api.users.batchCreate.input.parse(req.body);
+      const usernames = input.map((user) => user.username.trim().toLowerCase());
+      const seen = new Set<string>();
+      const duplicates = usernames.filter((name) => {
+        if (seen.has(name)) return true;
+        seen.add(name);
+        return false;
+      });
+      if (duplicates.length) {
+        return res.status(400).json({ message: `Duplicate usernames in batch: ${[...new Set(duplicates)].join(", ")}` });
+      }
+
+      for (const username of usernames) {
+        const existing = await storage.getUserByUsername(username);
+        if (existing) {
+          return res.status(400).json({ message: `User ${username} already exists` });
+        }
+      }
+
       const createdUsers = [];
       for (const userInput of input) {
-        const existing = await storage.getUserByUsername(userInput.username);
-        if (existing) {
-          return res.status(400).json({ message: `User ${userInput.username} already exists` });
-        }
-        createdUsers.push(await storage.createUser(userInput));
+        createdUsers.push(
+          await storage.createUser({
+            ...userInput,
+            username: userInput.username.trim().toLowerCase(),
+          }),
+        );
       }
       res.status(201).json(createdUsers);
     } catch (e) {
