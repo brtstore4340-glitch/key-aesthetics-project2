@@ -8,7 +8,7 @@ import { api } from "@shared/routes";
 
 export default function Login() {
   const { login, isLoggingIn, user } = useAuth();
-  const presetUsers = ["admin", "putthipat", "possatorn", "anat", "wattanakorn", "chawin", "pornpailin", "noon"];
+  const presetUsers = ["admin", "staff", "account", "aaaaa"];
   const [username, setUsername] = useState("");
   const [pin, setPin] = useState("");
   const [health, setHealth] = useState<"checking" | "ok" | "error">("checking");
