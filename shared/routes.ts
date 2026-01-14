@@ -93,6 +93,15 @@ export const api = {
         404: errorSchemas.notFound,
       },
     },
+    batchCreate: {
+      method: 'POST' as const,
+      path: '/api/users/batch',
+      input: z.array(insertUserSchema),
+      responses: {
+        201: z.array(z.custom<typeof users.$inferSelect>()),
+        400: errorSchemas.validation,
+      },
+    },
   },
 
   // Products
