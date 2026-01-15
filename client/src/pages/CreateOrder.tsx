@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useProducts } from "@/hooks/use-products";
 import { useCreateOrder } from "@/hooks/use-orders";
 import { useLocation } from "wouter";
@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface CartItem {
   productId: number;
@@ -37,9 +36,9 @@ export default function CreateOrder() {
   const [discountInput, setDiscountInput] = useState("0");
   const [totalInput, setTotalInput] = useState("0");
   const [lastEdited, setLastEdited] = useState<"discount" | "total">("discount");
-  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [idCardFile, setIdCardFile] = useState<File | null>(null);
   const [paymentFile, setPaymentFile] = useState<File | null>(null);
+  const summaryRef = useRef<HTMLDivElement | null>(null);
 
   const promotions = ["ไม่มีโปรโมชั่น", "ลด 5%", "ลด 10%", "แถมสินค้า"];
 
@@ -194,7 +193,6 @@ export default function CreateOrder() {
       setTotalInput("0");
       setIdCardFile(null);
       setPaymentFile(null);
-      setIsCheckoutOpen(false);
       setLocation("/orders");
     } catch (err: any) {
       toast({ title: "Error", description: err.message, variant: "destructive" });
@@ -204,7 +202,7 @@ export default function CreateOrder() {
   if (isLoading) return <div className="flex justify-center p-12"><Loader2 className="animate-spin text-primary" /></div>;
 
   return (
-    <div className="flex flex-col gap-6 h-[calc(100vh-120px)] overflow-hidden">
+    <div className="flex flex-col gap-6 h-[calc(100vh-120px)] overflow-y-auto">
       <div className="flex justify-end">
         <Sheet>
           <SheetTrigger asChild>
@@ -276,38 +274,16 @@ export default function CreateOrder() {
             </div>
 
             <div className="space-y-4 border-t border-border/50 pt-4">
-              <p className="text-xs text-muted-foreground">Total = Sub Total - Discount</p>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Sub Total</span>
-                  <span className="font-semibold">฿{subTotal.toLocaleString()}</span>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs text-muted-foreground">Discount</label>
-                  <Input
-                    value={discountInput}
-                    onChange={(e) => handleDiscountChange(e.target.value)}
-                    inputMode="decimal"
-                    className="h-10"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs text-muted-foreground">Total</label>
-                  <Input
-                    value={totalInput}
-                    onChange={(e) => handleTotalChange(e.target.value)}
-                    inputMode="decimal"
-                    className="h-10"
-                  />
-                </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Sub Total</span>
+                <span className="font-semibold">฿{subTotal.toLocaleString()}</span>
               </div>
-
               <Button
-                onClick={() => setIsCheckoutOpen(true)}
+                onClick={() => summaryRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
                 disabled={cart.length === 0}
                 className="w-full h-11 rounded-xl bg-primary text-primary-foreground font-semibold"
               >
-                Checkout
+                ไปที่สรุปยอด
               </Button>
             </div>
           </SheetContent>
@@ -485,25 +461,18 @@ export default function CreateOrder() {
                 />
               </div>
             </div>
-            <Button
-              onClick={handleSubmit}
-              disabled={!canSubmit}
-              className="w-full h-12 rounded-2xl bg-primary text-primary-foreground text-lg font-bold shadow-2xl shadow-primary/30 hover:shadow-primary/50 hover:-translate-y-1 transition-all active:scale-95 disabled:opacity-50 disabled:translate-y-0 gap-3"
-            >
-              {isPending ? <Loader2 className="animate-spin w-6 h-6" /> : <>บันทึก <ArrowRight className="w-5 h-5" /></>}
-            </Button>
           </div>
         </CardContent>
       </Card>
 
-      <Dialog open={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>แนบหลักฐานการชำระเงิน</DialogTitle>
-            <DialogDescription>แนบรูปบัตรประชาชนและสลิปการชำระเงินก่อนยืนยันคำสั่งซื้อ</DialogDescription>
-          </DialogHeader>
+      <Card ref={summaryRef} className="border-border/40 shadow-xl">
+        <CardContent className="p-6 space-y-6">
+          <div>
+            <h2 className="text-2xl font-display font-bold tracking-tight">แนบหลักฐานการชำระเงิน</h2>
+            <p className="text-muted-foreground text-sm">แนบรูปบัตรประชาชนและสลิปการชำระเงิน</p>
+          </div>
 
-          <div className="space-y-4">
+          <div className="grid gap-6 md:grid-cols-2">
             <div className="space-y-2">
               <label className="text-sm font-medium flex items-center gap-2">
                 <ImagePlus className="w-4 h-4 text-primary" />
@@ -536,12 +505,44 @@ export default function CreateOrder() {
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="secondary" onClick={() => setIsCheckoutOpen(false)}>ยกเลิก</Button>
-            <Button onClick={handleCheckout}>ยืนยัน Checkout</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          <div className="border-t border-border/40 pt-6 space-y-4">
+            <p className="text-xs text-muted-foreground">Total = Sub Total - Discount</p>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Sub Total</span>
+                <span className="font-semibold">฿{subTotal.toLocaleString()}</span>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">Discount</label>
+                <Input
+                  value={discountInput}
+                  onChange={(e) => handleDiscountChange(e.target.value)}
+                  inputMode="decimal"
+                  className="h-10"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">Total</label>
+                <Input
+                  value={totalInput}
+                  onChange={(e) => handleTotalChange(e.target.value)}
+                  inputMode="decimal"
+                  className="h-10"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-3 justify-end">
+            <Button variant="secondary" onClick={handleSubmit} disabled={!canSubmit}>
+              บันทึกแบบร่าง
+            </Button>
+            <Button onClick={handleCheckout} disabled={!canSubmit || isPending}>
+              {isPending ? <Loader2 className="animate-spin w-4 h-4" /> : <>ยืนยัน Checkout <ArrowRight className="w-4 h-4" /></>}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

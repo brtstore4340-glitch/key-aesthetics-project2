@@ -1,10 +1,10 @@
 import { useProducts, useCategories } from "@/hooks/use-products";
-import { Loader2, Plus, Upload, FileDown } from "lucide-react";
+import { Loader2, Plus, Upload, FileDown, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import * as XLSX from "xlsx";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { api } from "@shared/routes";
+import { api, buildUrl } from "@shared/routes";
 import { useAuth } from "@/hooks/use-auth";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { useForm } from "react-hook-form";
@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 
 export default function Products() {
   const { data: products, isLoading } = useProducts();
@@ -88,6 +89,24 @@ export default function Products() {
       }
     };
     reader.readAsArrayBuffer(file);
+  };
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest("DELETE", buildUrl(api.products.delete.path, { id }));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.products.list.path] });
+      toast({ title: "Product deleted" });
+    },
+    onError: (err: any) => {
+      toast({ title: "Failed to delete product", description: err.message, variant: "destructive" });
+    }
+  });
+
+  const handleDelete = (product: Product) => {
+    if (!window.confirm(`ตั้งใจจะลบ "${product.name}" จริงๆ ใช่ไหม`)) return;
+    deleteMutation.mutate(product.id);
   };
 
   if (isLoading) return <div className="flex justify-center p-12"><Loader2 className="animate-spin text-primary" /></div>;
@@ -237,6 +256,20 @@ export default function Products() {
                   {(product.stock ?? 0) > 0 ? "In Stock" : "Out of Stock"}
                 </span>
               </div>
+              {user?.role === "admin" && (
+                <div className="absolute top-3 left-3">
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="icon"
+                    onClick={() => handleDelete(product)}
+                    disabled={deleteMutation.isPending}
+                    className="h-8 w-8 rounded-full"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
             </div>
             
             <div className="p-5 space-y-3">
