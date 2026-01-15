@@ -38,7 +38,7 @@ export async function registerRoutes(
   });
 
   app.post(api.products.create.path, async (req, res) => {
-    if (!req.isAuthenticated() || (req.user as any).role !== 'admin') {
+    if (!req.isAuthenticated() || (req.user as any).role !== "admin") {
       return res.status(403).send("Forbidden");
     }
     try {
@@ -52,7 +52,7 @@ export async function registerRoutes(
   });
 
   app.put(api.products.update.path, async (req, res) => {
-    if (!req.isAuthenticated() || (req.user as any).role !== 'admin') {
+    if (!req.isAuthenticated() || (req.user as any).role !== "admin") {
       return res.status(403).send("Forbidden");
     }
     try {
@@ -66,7 +66,7 @@ export async function registerRoutes(
   });
 
   app.delete(api.products.delete.path, async (req, res) => {
-    if (!req.isAuthenticated() || (req.user as any).role !== 'admin') {
+    if (!req.isAuthenticated() || (req.user as any).role !== "admin") {
       return res.status(403).send("Forbidden");
     }
     const product = await storage.getProduct(Number(req.params.id));
@@ -76,7 +76,7 @@ export async function registerRoutes(
   });
 
   app.post(api.products.batchCreate.path, async (req, res) => {
-    if (!req.isAuthenticated() || (req.user as any).role !== 'admin') {
+    if (!req.isAuthenticated() || (req.user as any).role !== "admin") {
       return res.status(403).send("Forbidden");
     }
     try {
@@ -95,7 +95,7 @@ export async function registerRoutes(
     
     // If admin/accounting, show all. If staff, show own.
     const user = req.user as any;
-    if (user.role === 'admin' || user.role === 'accounting') {
+    if (user.role === "admin" || user.role === "accounting") {
       const orders = await storage.getOrders();
       res.json(orders);
     } else {
@@ -143,7 +143,7 @@ export async function registerRoutes(
 
   // Users (Admin only)
   app.get(api.users.list.path, async (req, res) => {
-    if (!req.isAuthenticated() || (req.user as any).role !== 'admin') {
+    if (!req.isAuthenticated() || (req.user as any).role !== "admin") {
       return res.status(403).send("Forbidden");
     }
     const users = await storage.getUsers();
@@ -151,7 +151,7 @@ export async function registerRoutes(
   });
 
   app.post(api.users.create.path, async (req, res) => {
-    if (!req.isAuthenticated() || (req.user as any).role !== 'admin') {
+    if (!req.isAuthenticated() || (req.user as any).role !== "admin") {
       return res.status(403).send("Forbidden");
     }
     try {
@@ -165,7 +165,7 @@ export async function registerRoutes(
   });
 
   app.delete(api.users.delete.path, async (req, res) => {
-    if (!req.isAuthenticated() || (req.user as any).role !== 'admin') {
+    if (!req.isAuthenticated() || (req.user as any).role !== "admin") {
       return res.status(403).send("Forbidden");
     }
     await storage.deleteUser(Number(req.params.id));
@@ -179,7 +179,7 @@ export async function registerRoutes(
   });
 
   app.post(api.categories.create.path, async (req, res) => {
-    if (!req.isAuthenticated() || (req.user as any).role !== 'admin') {
+    if (!req.isAuthenticated() || (req.user as any).role !== "admin") {
       return res.status(403).send("Forbidden");
     }
     try {
@@ -193,7 +193,7 @@ export async function registerRoutes(
   });
 
   app.put(api.categories.update.path, async (req, res) => {
-    if (!req.isAuthenticated() || (req.user as any).role !== 'admin') {
+    if (!req.isAuthenticated() || (req.user as any).role !== "admin") {
       return res.status(403).send("Forbidden");
     }
     try {
@@ -207,7 +207,7 @@ export async function registerRoutes(
   });
 
   app.delete(api.categories.delete.path, async (req, res) => {
-    if (!req.isAuthenticated() || (req.user as any).role !== 'admin') {
+    if (!req.isAuthenticated() || (req.user as any).role !== "admin") {
       return res.status(403).send("Forbidden");
     }
     await storage.deleteCategory(Number(req.params.id));
@@ -216,7 +216,7 @@ export async function registerRoutes(
 
   // Promotions (Admin only)
   app.get(api.promotions.list.path, async (req, res) => {
-    if (!req.isAuthenticated() || (req.user as any).role !== 'admin') {
+    if (!req.isAuthenticated() || (req.user as any).role !== "admin") {
       return res.status(403).send("Forbidden");
     }
     const promotions = await storage.getPromotions();
@@ -224,7 +224,7 @@ export async function registerRoutes(
   });
 
   app.post(api.promotions.create.path, async (req, res) => {
-    if (!req.isAuthenticated() || (req.user as any).role !== 'admin') {
+    if (!req.isAuthenticated() || (req.user as any).role !== "admin") {
       return res.status(403).send("Forbidden");
     }
     try {
@@ -238,15 +238,12 @@ export async function registerRoutes(
   });
 
   app.delete(api.promotions.delete.path, async (req, res) => {
-    if (!req.isAuthenticated() || (req.user as any).role !== 'admin') {
+    if (!req.isAuthenticated() || (req.user as any).role !== "admin") {
       return res.status(403).send("Forbidden");
     }
     await storage.deletePromotion(Number(req.params.id));
     res.sendStatus(200);
   });
-
-  // Seed Database (async, don't await strictly to not block startup if slow, or await if fast)
-  seedDatabase().catch(err => console.error("Error seeding database:", err));
 
   return httpServer;
 }
@@ -316,3 +313,4 @@ export async function seedDatabase() {
     console.warn("Skipping seed (Firestore unavailable):", (err as Error)?.message ?? err);
   }
 }
+
