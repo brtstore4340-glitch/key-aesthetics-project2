@@ -164,6 +164,49 @@ export async function registerRoutes(
     }
   });
 
+  app.post(api.users.batchCreate.path, async (req, res) => {
+    if (!req.isAuthenticated() || (req.user as any).role !== 'admin') {
+      return res.status(403).send("Forbidden");
+    }
+    try {
+      const input = api.users.batchCreate.input.parse(req.body);
+      if (input.length === 0) {
+        return res.status(400).json({ message: "Batch is empty" });
+      }
+      const usernames = input.map((user) => user.username.trim().toLowerCase());
+      const seen = new Set<string>();
+      const duplicates = usernames.filter((name) => {
+        if (seen.has(name)) return true;
+        seen.add(name);
+        return false;
+      });
+      if (duplicates.length) {
+        return res.status(400).json({ message: `Duplicate usernames in batch: ${[...new Set(duplicates)].join(", ")}` });
+      }
+
+      for (const username of usernames) {
+        const existing = await storage.getUserByUsername(username);
+        if (existing) {
+          return res.status(400).json({ message: `User ${username} already exists` });
+        }
+      }
+
+      const createdUsers = [];
+      for (const userInput of input) {
+        createdUsers.push(
+          await storage.createUser({
+            ...userInput,
+            username: userInput.username.trim().toLowerCase(),
+          }),
+        );
+      }
+      res.status(201).json(createdUsers);
+    } catch (e) {
+      if (e instanceof z.ZodError) res.status(400).json(e.errors);
+      else throw e;
+    }
+  });
+
   app.delete(api.users.delete.path, async (req, res) => {
     if (!req.isAuthenticated() || (req.user as any).role !== 'admin') {
       return res.status(403).send("Forbidden");
@@ -263,18 +306,19 @@ export async function seedDatabase() {
         role: "admin", 
         name: "Admin User" 
       });
-      await storage.createUser({ 
-        username: "staff", 
-        pin: "2222", 
-        role: "staff", 
-        name: "Staff User" 
-      });
-      await storage.createUser({ 
-        username: "account", 
-        pin: "3333", 
-        role: "accounting", 
-        name: "Accounting User" 
-      });
+      const seedUsers = [
+        { username: "putthipat", pin: "1234", role: "staff", name: "Putthipat" },
+        { username: "possatorn", pin: "1234", role: "staff", name: "Possatorn" },
+        { username: "anat", pin: "1234", role: "staff", name: "Anat" },
+        { username: "wattanakorn", pin: "1234", role: "staff", name: "Wattanakorn" },
+        { username: "chawin", pin: "1234", role: "staff", name: "Chawin" },
+        { username: "pornpailin", pin: "1234", role: "staff", name: "Pornpailin" },
+        { username: "noon", pin: "8888", role: "accounting", name: "Noon" },
+        { username: "aaaaaaaa", pin: "1234", role: "staff", name: "Disabled Staff", isActive: false },
+      ];
+      for (const user of seedUsers) {
+        await storage.createUser(user);
+      }
       
       // Seed Categories
       const defaultCategory = await storage.createCategory({
@@ -303,13 +347,22 @@ export async function seedDatabase() {
 
     // Ensure demo users exist even after initial seed
     const demoUsers = [
-      { username: "aaaaa", pin: "1111", role: "staff", name: "User AAAAA" },
+      { username: "putthipat", pin: "1234", role: "staff", name: "Putthipat" },
+      { username: "possatorn", pin: "1234", role: "staff", name: "Possatorn" },
+      { username: "anat", pin: "1234", role: "staff", name: "Anat" },
+      { username: "wattanakorn", pin: "1234", role: "staff", name: "Wattanakorn" },
+      { username: "chawin", pin: "1234", role: "staff", name: "Chawin" },
+      { username: "pornpailin", pin: "1234", role: "staff", name: "Pornpailin" },
+      { username: "noon", pin: "8888", role: "accounting", name: "Noon" },
+      { username: "aaaaaaaa", pin: "1234", role: "staff", name: "Disabled Staff", isActive: false },
     ];
 
     for (const user of demoUsers) {
       const existing = await storage.getUserByUsername(user.username);
       if (!existing) {
         await storage.createUser(user);
+      } else if (user.isActive === false && existing.isActive !== false) {
+        await storage.updateUser(existing.id, { isActive: false });
       }
     }
   } catch (err) {
