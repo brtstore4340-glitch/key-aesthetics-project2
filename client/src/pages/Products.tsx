@@ -50,12 +50,20 @@ export default function Products() {
 
   const handleExportTemplate = () => {
     const ws = XLSX.utils.json_to_sheet([
-      { "Product Name": "Example Product", "Normal Price": "100.00", "Pic (001.jpg)": "image_url_here", "Unit": "10" }
+      {
+        "Product Name": "Example Product",
+        "Normal Price": "100.00",
+        "Pic (001.jpg)": "image_url_here",
+        "Category": "Skincare",
+        "Description": "Short product description"
+      }
     ]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Template");
     XLSX.writeFile(wb, "product_template.xlsx");
   };
+
+  const normalizeProductName = (name: string) => name.trim().toLowerCase();
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -70,19 +78,116 @@ export default function Products() {
         const worksheet = workbook.Sheets[sheetName];
         const json = XLSX.utils.sheet_to_json(worksheet) as any[];
 
-        const formattedProducts = json.map(row => ({
-          name: String(row["Product Name"]),
-          price: String(row["Normal Price"]),
-          images: row["Pic (001.jpg)"] ? [String(row["Pic (001.jpg)"])] : [],
-          stock: parseInt(String(row["Unit"])) || 0,
-          categoryId: categories?.[0]?.id || null, // Default to first category
-          description: "",
-          isEnabled: true
-        }));
+        const categoryLookup = new Map(
+          (categories ?? []).map((category: Category) => [category.name.trim().toLowerCase(), category.id])
+        );
 
-        await apiRequest("POST", api.products.batchCreate.path, formattedProducts);
+        const formattedProducts = json
+          .map((row) => {
+            const name = String(row["Product Name"] ?? "").trim();
+            if (!name) return null;
+
+            const categoryName = String(row["Category"] ?? "").trim();
+            const categoryId =
+              (categoryName ? categoryLookup.get(categoryName.toLowerCase()) : undefined) ??
+              categories?.[0]?.id ??
+              null;
+
+            return {
+              name,
+              price: String(row["Normal Price"] ?? "").trim(),
+              images: row["Pic (001.jpg)"] ? [String(row["Pic (001.jpg)"]).trim()] : [],
+              stock: 0,
+              categoryId,
+              description: String(row["Description"] ?? "").trim(),
+              isEnabled: true
+            };
+          })
+          .filter(Boolean) as {
+            name: string;
+            price: string;
+            images: string[];
+            stock: number;
+            categoryId: number | null;
+            description: string;
+            isEnabled: boolean;
+          }[];
+
+        const existingLookup = new Map(
+          (products ?? []).map((product) => [normalizeProductName(product.name), product])
+        );
+        const duplicates = formattedProducts.filter((product) =>
+          existingLookup.has(normalizeProductName(product.name))
+        );
+
+        const replaceAll =
+          duplicates.length > 0
+            ? window.confirm(
+                `พบสินค้าในระบบแล้ว ${duplicates.length} รายการ ต้องการแทนที่ข้อมูลทั้งหมดหรือไม่?\nกด OK เพื่อแทนที่ทั้งหมด\nกด Cancel เพื่ออัปเดตเฉพาะข้อมูลที่เปลี่ยนแปลง`
+              )
+            : false;
+
+        const newProducts = [];
+        const updates: Array<{ id: number; data: Record<string, unknown> }> = [];
+
+        for (const product of formattedProducts) {
+          const existing = existingLookup.get(normalizeProductName(product.name));
+          if (!existing) {
+            newProducts.push(product);
+            continue;
+          }
+
+          if (replaceAll) {
+            const categoryId = product.categoryId ?? existing.categoryId;
+            updates.push({
+              id: existing.id,
+              data: {
+                ...product,
+                description: product.description || existing.description || "",
+                images: product.images.length ? product.images : existing.images || [],
+                ...(categoryId ? { categoryId } : {}),
+                price: product.price || existing.price,
+              }
+            });
+            continue;
+          }
+
+          const updateFields: Record<string, unknown> = {};
+          if (product.price && product.price !== existing.price) {
+            updateFields.price = product.price;
+          }
+          if (product.description && product.description !== existing.description) {
+            updateFields.description = product.description;
+          }
+          if (product.images.length && JSON.stringify(product.images) !== JSON.stringify(existing.images ?? [])) {
+            updateFields.images = product.images;
+          }
+          if (product.categoryId && product.categoryId !== existing.categoryId) {
+            updateFields.categoryId = product.categoryId;
+          }
+
+          if (Object.keys(updateFields).length) {
+            updates.push({ id: existing.id, data: updateFields });
+          }
+        }
+
+        if (newProducts.length) {
+          await apiRequest("POST", api.products.batchCreate.path, newProducts);
+        }
+
+        if (updates.length) {
+          await Promise.all(
+            updates.map((update) =>
+              apiRequest("PUT", api.products.update.path.replace(":id", String(update.id)), update.data)
+            )
+          );
+        }
+
         queryClient.invalidateQueries({ queryKey: [api.products.list.path] });
-        toast({ title: "Success", description: `Uploaded ${formattedProducts.length} products` });
+        toast({
+          title: "Success",
+          description: `Uploaded ${newProducts.length} new products and updated ${updates.length} products`
+        });
       } catch (err: any) {
         toast({ title: "Upload Failed", description: err.message, variant: "destructive" });
       }
@@ -162,19 +267,6 @@ export default function Products() {
                             </FormItem>
                           )}
                         />
-                        <FormField
-                          control={form.control}
-                          name="stock"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Stock</FormLabel>
-                              <FormControl>
-                                <Input {...field} type="number" onChange={e => field.onChange(parseInt(e.target.value))} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
                       </div>
                       <FormField
                         control={form.control}
@@ -232,11 +324,6 @@ export default function Products() {
                 alt={product.name}
                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
               />
-              <div className="absolute top-3 right-3">
-                <span className={`px-2 py-1 text-xs font-bold rounded-full ${(product.stock ?? 0) > 0 ? "bg-mint/90 text-teal-950" : "bg-destructive/90 text-white"}`}>
-                  {(product.stock ?? 0) > 0 ? "In Stock" : "Out of Stock"}
-                </span>
-              </div>
             </div>
             
             <div className="p-5 space-y-3">
