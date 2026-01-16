@@ -1,12 +1,18 @@
 import { build as esbuild } from "esbuild";
 import { build as viteBuild } from "vite";
 import { rm, readFile } from "fs/promises";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+process.chdir(path.resolve(__dirname, ".."));
 
 // server deps to bundle to reduce openat(2) syscalls
 // which helps cold start times
 const allowlist = [
   "@google/generative-ai",
   "firebase-admin",
+  "dotenv",
   "axios",
   "cors",
   "date-fns",
@@ -44,19 +50,30 @@ async function buildAll() {
   ];
   const externals = allDeps.filter((dep) => !allowlist.includes(dep));
 
-  await esbuild({
+  const commonServerOptions = {
     // Server entry lives under shared/server
-    entryPoints: ["shared/server/index.ts"],
+    entryPoints: ["shared/server/app.ts"],
     platform: "node",
     bundle: true,
     format: "cjs",
-    outfile: "dist/index.cjs",
     define: {
       "process.env.NODE_ENV": '"production"',
     },
     minify: true,
     external: externals,
     logLevel: "info",
+  } as const;
+
+  // Bundle for local/alternative deployments
+  await esbuild({
+    ...commonServerOptions,
+    outfile: "dist/index.cjs",
+  });
+
+  // Bundle for Firebase Functions (picked up from functions/server.cjs)
+  await esbuild({
+    ...commonServerOptions,
+    outfile: "functions/server.cjs",
   });
 }
 
