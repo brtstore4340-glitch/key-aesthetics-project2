@@ -1,5 +1,5 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api, buildUrl, type CreateProductRequest } from "@shared/routes";
+import { type CreateProductRequest, api, buildUrl } from "@shared/routes";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 export function useProducts() {
   return useQuery({

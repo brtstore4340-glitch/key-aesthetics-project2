@@ -1,18 +1,31 @@
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { api, buildUrl } from "@shared/routes";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { useForm } from "react-hook-form";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertPromotionSchema, type Product, type Promotion } from "@shared/schema";
-import { Loader2, Plus, Trash2, Tag, Gift } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { api, buildUrl } from "@shared/routes";
+import { type Product, type Promotion, insertPromotionSchema } from "@shared/schema";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { Gift, Loader2, Plus, Tag, Trash2 } from "lucide-react";
+import { useForm } from "react-hook-form";
 
 export default function Promotions() {
   const { user } = useAuth();
@@ -33,7 +46,7 @@ export default function Promotions() {
       name: "",
       productId: undefined as unknown as number,
       withdrawAmount: 0,
-    }
+    },
   });
 
   const createMutation = useMutation({
@@ -48,7 +61,7 @@ export default function Promotions() {
     },
     onError: (err: any) => {
       toast({ title: "Error", description: err.message, variant: "destructive" });
-    }
+    },
   });
 
   const deleteMutation = useMutation({
@@ -58,14 +71,23 @@ export default function Promotions() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.promotions.list.path] });
       toast({ title: "Promotion deleted" });
-    }
+    },
   });
 
   if (user?.role !== "admin" && user?.role !== "staff") {
-    return <div className="p-8 text-center">Unauthorized. Only Admins and Staff can access this page.</div>;
+    return (
+      <div className="p-8 text-center">
+        Unauthorized. Only Admins and Staff can access this page.
+      </div>
+    );
   }
 
-  if (isLoadingPromos) return <div className="flex justify-center p-12"><Loader2 className="animate-spin text-primary" /></div>;
+  if (isLoadingPromos)
+    return (
+      <div className="flex justify-center p-12">
+        <Loader2 className="animate-spin text-primary" />
+      </div>
+    );
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -92,7 +114,10 @@ export default function Promotions() {
             </CardHeader>
             <CardContent className="pt-6">
               <Form {...form}>
-                <form onSubmit={form.handleSubmit((data) => createMutation.mutate(data))} className="space-y-4">
+                <form
+                  onSubmit={form.handleSubmit((data) => createMutation.mutate(data))}
+                  className="space-y-4"
+                >
                   <FormField
                     control={form.control}
                     name="name"
@@ -113,8 +138,8 @@ export default function Promotions() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Select Product</FormLabel>
-                        <Select 
-                          onValueChange={(val) => field.onChange(parseInt(val))} 
+                        <Select
+                          onValueChange={(val) => field.onChange(Number.parseInt(val))}
                           value={field.value?.toString() || ""}
                         >
                           <FormControl>
@@ -142,10 +167,10 @@ export default function Promotions() {
                       <FormItem>
                         <FormLabel>Withdraw Amount</FormLabel>
                         <FormControl>
-                          <Input 
-                            type="number" 
-                            {...field} 
-                            onChange={(e) => field.onChange(parseInt(e.target.value))} 
+                          <Input
+                            type="number"
+                            {...field}
+                            onChange={(e) => field.onChange(Number.parseInt(e.target.value))}
                           />
                         </FormControl>
                         <FormMessage />
@@ -154,7 +179,11 @@ export default function Promotions() {
                   />
 
                   <Button type="submit" className="w-full" disabled={createMutation.isPending}>
-                    {createMutation.isPending ? <Loader2 className="animate-spin" /> : "Create Promotion"}
+                    {createMutation.isPending ? (
+                      <Loader2 className="animate-spin" />
+                    ) : (
+                      "Create Promotion"
+                    )}
                   </Button>
                 </form>
               </Form>
@@ -166,13 +195,16 @@ export default function Promotions() {
           <h2 className="text-xl font-display font-bold flex items-center gap-2">
             <Tag className="w-5 h-5 text-primary" /> Active Promotions
           </h2>
-          {(!promotions || promotions.length === 0) ? (
+          {!promotions || promotions.length === 0 ? (
             <div className="p-8 text-center bg-secondary/10 rounded-2xl border border-dashed border-border/40">
               <p className="text-muted-foreground">No promotions found.</p>
             </div>
           ) : (
             promotions.map((promo: Promotion) => (
-              <Card key={promo.id} className="border-border/40 overflow-hidden group hover:border-primary/50 transition-all">
+              <Card
+                key={promo.id}
+                className="border-border/40 overflow-hidden group hover:border-primary/50 transition-all"
+              >
                 <div className="flex items-center gap-4 p-4">
                   <div className="p-3 rounded-xl bg-primary/10 text-primary">
                     <Gift className="w-6 h-6" />
@@ -186,13 +218,14 @@ export default function Promotions() {
                       <h3 className="font-bold truncate">{promo.name}</h3>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      {products?.find(p => p.id === promo.productId)?.name || "Unknown Product"} • {promo.withdrawAmount} Units
+                      {products?.find((p) => p.id === promo.productId)?.name || "Unknown Product"} •{" "}
+                      {promo.withdrawAmount} Units
                     </p>
                   </div>
                   {user?.role === "admin" && (
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       className="text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
                       onClick={() => deleteMutation.mutate(promo.id)}
                     >

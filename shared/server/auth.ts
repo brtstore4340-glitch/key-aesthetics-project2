@@ -1,9 +1,9 @@
+import type { User as DbUser } from "@shared/schema";
+import type { Express } from "express";
+import session from "express-session";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import { type Express } from "express";
-import session from "express-session";
 import { storage } from "./storage";
-import { User as DbUser } from "@shared/schema";
 
 type AuthUser = Omit<DbUser, "pin">;
 
@@ -43,28 +43,27 @@ export function setupAuth(app: Express) {
         passwordField: "pin", // accept PIN field instead of default "password"
       },
       async (username, pin, done) => {
-      let user = await storage.getUserByUsername(username);
+        let user = await storage.getUserByUsername(username);
 
-      // Auto-create default accounts if they are missing but correct PIN is provided
-      const defaultUsers = [
-        { username: "admin", pin: "1111", role: "admin", name: "Admin User" },
-        { username: "staff", pin: "2222", role: "staff", name: "Staff User" },
-        { username: "account", pin: "3333", role: "accounting", name: "Accounting User" },
-        { username: "aaaaa", pin: "1111", role: "staff", name: "User AAAAA" },
-      ];
+        // Auto-create default accounts if they are missing but correct PIN is provided
+        const defaultUsers = [
+          { username: "admin", pin: "1111", role: "admin", name: "Admin User" },
+          { username: "staff", pin: "2222", role: "staff", name: "Staff User" },
+          { username: "account", pin: "3333", role: "accounting", name: "Accounting User" },
+          { username: "aaaaa", pin: "1111", role: "staff", name: "User AAAAA" },
+        ];
 
-      if (!user) {
-        const match = defaultUsers.find((u) => u.username === username && u.pin === pin);
-        if (match) {
-          user = await storage.createUser(match);
+        if (!user) {
+          const match = defaultUsers.find((u) => u.username === username && u.pin === pin);
+          if (match) {
+            user = await storage.createUser(match);
+          }
         }
-      }
 
-      if (!user || user.pin !== pin) {
-        return done(null, false);
-      } else {
+        if (!user || user.pin !== pin) {
+          return done(null, false);
+        }
         return done(null, user);
-      }
       },
     ),
   );

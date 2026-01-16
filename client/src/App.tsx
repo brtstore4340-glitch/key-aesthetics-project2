@@ -1,17 +1,17 @@
-import { Switch, Route, Redirect } from "wouter";
-import { queryClient } from "./lib/queryClient";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { Layout } from "@/components/Layout";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Layout } from "@/components/Layout";
 import { useAuth } from "@/hooks/use-auth";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
+import { Redirect, Route, Switch } from "wouter";
+import { queryClient } from "./lib/queryClient";
 
-import Login from "@/pages/Login";
-import Dashboard from "@/pages/Dashboard";
-import Orders from "@/pages/Orders";
 import CreateOrder from "@/pages/CreateOrder";
+import Dashboard from "@/pages/Dashboard";
+import Login from "@/pages/Login";
 import OrderDetail from "@/pages/OrderDetail";
+import Orders from "@/pages/Orders";
 import Products from "@/pages/Products";
 import Promotions from "@/pages/Promotions";
 import Settings from "@/pages/Settings";
@@ -44,7 +44,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/login" component={Login} />
-      
+
       {/* Protected Routes */}
       <Route path="/">
         <ProtectedRoute component={Dashboard} />

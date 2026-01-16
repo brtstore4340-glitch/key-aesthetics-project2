@@ -1,4 +1,13 @@
-import { pgTable, text, serial, integer, boolean, timestamp, jsonb, decimal } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  decimal,
+  integer,
+  jsonb,
+  pgTable,
+  serial,
+  text,
+  timestamp,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -8,7 +17,9 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   pin: text("pin").notNull(),
-  role: text("role", { enum: ["admin", "staff", "accounting"] }).notNull().default("staff"),
+  role: text("role", { enum: ["admin", "staff", "accounting"] })
+    .notNull()
+    .default("staff"),
   name: text("name").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -43,13 +54,19 @@ export const promotions = pgTable("promotions", {
 export const orders = pgTable("orders", {
   id: serial("id").primaryKey(),
   orderNo: text("order_no").notNull().unique(), // Generated unique string
-  status: text("status", { enum: ["draft", "submitted", "verified", "cancelled"] }).default("draft"),
-  items: jsonb("items").$type<{
-    productId: number;
-    name: string;
-    quantity: number;
-    price: number;
-  }[]>().notNull(),
+  status: text("status", { enum: ["draft", "submitted", "verified", "cancelled"] }).default(
+    "draft",
+  ),
+  items: jsonb("items")
+    .$type<
+      {
+        productId: number;
+        name: string;
+        quantity: number;
+        price: number;
+      }[]
+    >()
+    .notNull(),
   total: decimal("total").notNull(),
   customerInfo: jsonb("customer_info").$type<{
     doctorName?: string;
@@ -58,10 +75,14 @@ export const orders = pgTable("orders", {
     address?: string;
     offeredPrice?: string;
   }>(),
-  attachments: jsonb("attachments").$type<{
-    type: 'id_card' | 'payment_slip' | 'other';
-    url: string;
-  }[]>().default([]),
+  attachments: jsonb("attachments")
+    .$type<
+      {
+        type: "id_card" | "payment_slip" | "other";
+        url: string;
+      }[]
+    >()
+    .default([]),
   createdBy: integer("created_by").references(() => users.id),
   verifiedBy: integer("verified_by").references(() => users.id),
   verifiedAt: timestamp("verified_at"),
@@ -71,23 +92,36 @@ export const orders = pgTable("orders", {
 
 // === SCHEMAS ===
 
-export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true }).extend({
-  pin: z.string().length(4, "PIN must be exactly 4 digits").regex(/^\d+$/, "PIN must contain only digits")
-});
+export const insertUserSchema = createInsertSchema(users)
+  .omit({ id: true, createdAt: true })
+  .extend({
+    pin: z
+      .string()
+      .length(4, "PIN must be exactly 4 digits")
+      .regex(/^\d+$/, "PIN must contain only digits"),
+  });
 export const insertCategorySchema = createInsertSchema(categories).omit({ id: true });
-export const insertProductSchema = createInsertSchema(products).omit({ id: true, createdAt: true }).extend({
-  price: z.string().min(1, "Price is required").regex(/^\d+(\.\d{1,2})?$/, "Invalid price format"),
-  stock: z.number().min(0),
-  categoryId: z.number().int().positive()
+export const insertProductSchema = createInsertSchema(products)
+  .omit({ id: true, createdAt: true })
+  .extend({
+    price: z
+      .string()
+      .min(1, "Price is required")
+      .regex(/^\d+(\.\d{1,2})?$/, "Invalid price format"),
+    stock: z.number().min(0),
+    categoryId: z.number().int().positive(),
+  });
+export const insertPromotionSchema = createInsertSchema(promotions).omit({
+  id: true,
+  createdAt: true,
 });
-export const insertPromotionSchema = createInsertSchema(promotions).omit({ id: true, createdAt: true });
-export const insertOrderSchema = createInsertSchema(orders).omit({ 
-  id: true, 
-  createdAt: true, 
-  updatedAt: true, 
-  verifiedAt: true, 
+export const insertOrderSchema = createInsertSchema(orders).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  verifiedAt: true,
   verifiedBy: true,
-  orderNo: true // Backend generates this
+  orderNo: true, // Backend generates this
 });
 
 // === TYPES ===

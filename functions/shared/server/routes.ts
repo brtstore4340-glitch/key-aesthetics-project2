@@ -1,15 +1,12 @@
-import type { Express } from "express";
-import { createServer, type Server } from "http";
-import { setupAuth } from "./auth";
-import { storage } from "./storage";
+import { type Server, createServer } from "node:http";
 import { api } from "@shared/routes";
+import type { Express } from "express";
 import { z } from "zod";
+import { setupAuth } from "./auth";
 import { firestore } from "./db";
+import { storage } from "./storage";
 
-export async function registerRoutes(
-  httpServer: Server,
-  app: Express
-): Promise<Server> {
+export async function registerRoutes(httpServer: Server, app: Express): Promise<Server> {
   // Setup Authentication (Passport)
   setupAuth(app);
 
@@ -81,7 +78,7 @@ export async function registerRoutes(
     }
     try {
       const input = api.products.batchCreate.input.parse(req.body);
-      const products = await Promise.all(input.map(p => storage.createProduct(p)));
+      const products = await Promise.all(input.map((p) => storage.createProduct(p)));
       res.status(201).json(products);
     } catch (e) {
       if (e instanceof z.ZodError) res.status(400).json(e.errors);
@@ -92,7 +89,7 @@ export async function registerRoutes(
   // Orders
   app.get(api.orders.list.path, async (req, res) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
-    
+
     // If admin/accounting, show all. If staff, show own.
     const user = req.user as any;
     if (user.role === "admin" || user.role === "accounting") {
@@ -116,11 +113,11 @@ export async function registerRoutes(
     try {
       const input = api.orders.create.input.parse(req.body);
       // Force createdBy to current user
-      const order = await storage.createOrder({ 
-        ...input, 
+      const order = await storage.createOrder({
+        ...input,
         createdBy: (req.user as any).id,
         items: input.items || [],
-        total: input.total || "0" 
+        total: input.total || "0",
       });
       res.status(201).json(order);
     } catch (e) {
@@ -254,25 +251,25 @@ export async function seedDatabase() {
     const admin = await storage.getUserByUsername("admin");
     if (!admin) {
       console.log("Seeding database...");
-      await storage.createUser({ 
-        username: "admin", 
-        pin: "1111", 
-        role: "admin", 
-        name: "Admin User" 
+      await storage.createUser({
+        username: "admin",
+        pin: "1111",
+        role: "admin",
+        name: "Admin User",
       });
-      await storage.createUser({ 
-        username: "staff", 
-        pin: "2222", 
-        role: "staff", 
-        name: "Staff User" 
+      await storage.createUser({
+        username: "staff",
+        pin: "2222",
+        role: "staff",
+        name: "Staff User",
       });
-      await storage.createUser({ 
-        username: "account", 
-        pin: "3333", 
-        role: "accounting", 
-        name: "Accounting User" 
+      await storage.createUser({
+        username: "account",
+        pin: "3333",
+        role: "accounting",
+        name: "Accounting User",
       });
-      
+
       // Seed Categories
       const defaultCategory = await storage.createCategory({
         name: "Skincare",
@@ -286,7 +283,7 @@ export async function seedDatabase() {
         price: "1500.00",
         categoryId: defaultCategory.id,
         images: ["https://placehold.co/600x400/171A1D/D4B16A?text=Serum"],
-        stock: 100
+        stock: 100,
       });
       await storage.createProduct({
         name: "Hydrating Cream",
@@ -294,14 +291,12 @@ export async function seedDatabase() {
         price: "950.00",
         categoryId: defaultCategory.id,
         images: ["https://placehold.co/600x400/171A1D/D4B16A?text=Cream"],
-        stock: 50
+        stock: 50,
       });
     }
 
     // Ensure demo users exist even after initial seed
-    const demoUsers = [
-      { username: "aaaaa", pin: "1111", role: "staff", name: "User AAAAA" },
-    ];
+    const demoUsers = [{ username: "aaaaa", pin: "1111", role: "staff", name: "User AAAAA" }];
 
     for (const user of demoUsers) {
       const existing = await storage.getUserByUsername(user.username);
@@ -313,4 +308,3 @@ export async function seedDatabase() {
     console.warn("Skipping seed (Firestore unavailable):", (err as Error)?.message ?? err);
   }
 }
-

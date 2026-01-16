@@ -1,8 +1,8 @@
 import "dotenv/config";
-import express, { type Request, Response, NextFunction } from "express";
+import { createServer } from "node:http";
+import express, { type Request, type Response, type NextFunction } from "express";
 import { registerRoutes, seedDatabase } from "./routes";
 import { serveStatic } from "./static";
-import { createServer } from "http";
 
 const app = express();
 const httpServer = createServer(app);
@@ -40,7 +40,7 @@ app.use((req, res, next) => {
   let capturedJsonResponse: Record<string, any> | undefined = undefined;
 
   const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
+  res.json = (bodyJson, ...args) => {
     capturedJsonResponse = bodyJson;
     return originalResJson.apply(res, [bodyJson, ...args]);
   };
@@ -62,9 +62,9 @@ app.use((req, res, next) => {
 
 (async () => {
   await registerRoutes(httpServer, app);
-  
+
   // Seed database in dev/server mode
-  await seedDatabase().catch(err => console.error("Error seeding database:", err));
+  await seedDatabase().catch((err) => console.error("Error seeding database:", err));
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
@@ -88,7 +88,7 @@ app.use((req, res, next) => {
   // Other ports are firewalled. Default to 5000 if not specified.
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
-  const port = parseInt(process.env.PORT || "5000", 10);
+  const port = Number.parseInt(process.env.PORT || "5000", 10);
   httpServer.listen(
     {
       port,
@@ -100,4 +100,3 @@ app.use((req, res, next) => {
     },
   );
 })();
-

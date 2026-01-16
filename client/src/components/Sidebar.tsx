@@ -1,19 +1,19 @@
-import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
-import { 
-  LayoutDashboard, 
-  ShoppingBag, 
-  FileText, 
-  Settings, 
-  LogOut,
-  PlusCircle,
-  Menu,
-  X,
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  BarChart3,
+  FileText,
   Gift,
-  BarChart3
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  PlusCircle,
+  Settings,
+  ShoppingBag,
+  X,
 } from "lucide-react";
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { Link, useLocation } from "wouter";
 
 export function Sidebar() {
   const [location] = useLocation();
@@ -21,12 +21,10 @@ export function Sidebar() {
   const [isOpen, setIsOpen] = useState(false);
 
   const isActive = (path: string) => location === path;
-  
+
   const getLinks = () => {
     const role = user?.role;
-    const baseLinks = [
-      { href: "/", label: "Overview", icon: LayoutDashboard },
-    ];
+    const baseLinks = [{ href: "/", label: "Overview", icon: LayoutDashboard }];
 
     if (role === "admin") {
       return [
@@ -68,7 +66,9 @@ export function Sidebar() {
         </div>
         <div>
           <h1 className="font-display font-bold text-lg tracking-tight">System</h1>
-          <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{user?.role} Portal</p>
+          <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+            {user?.role} Portal
+          </p>
         </div>
       </div>
 
@@ -77,14 +77,21 @@ export function Sidebar() {
           const active = isActive(link.href);
           const Icon = link.icon;
           return (
-            <Link key={link.href} href={link.href} className={`
+            <Link
+              key={link.href}
+              href={link.href}
+              className={`
               flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group
-              ${active 
-                ? "bg-primary/10 text-primary font-medium" 
-                : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
+              ${
+                active
+                  ? "bg-primary/10 text-primary font-medium"
+                  : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
               }
-            `}>
-              <Icon className={`w-5 h-5 ${active ? "text-primary" : "text-muted-foreground group-hover:text-foreground"}`} />
+            `}
+            >
+              <Icon
+                className={`w-5 h-5 ${active ? "text-primary" : "text-muted-foreground group-hover:text-foreground"}`}
+              />
               {link.label}
             </Link>
           );
@@ -92,12 +99,15 @@ export function Sidebar() {
 
         {(user?.role === "admin" || user?.role === "staff") && (
           <div className="pt-4 mt-4 border-t border-border/40">
-             <Link href="/orders/new" className="
+            <Link
+              href="/orders/new"
+              className="
                 flex items-center gap-3 px-4 py-3 rounded-xl
                 bg-primary text-primary-foreground font-semibold
                 shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 hover:-translate-y-0.5
                 transition-all duration-300
-             ">
+             "
+            >
               <PlusCircle className="w-5 h-5" />
               New Order
             </Link>
@@ -115,7 +125,8 @@ export function Sidebar() {
             <p className="text-xs text-muted-foreground truncate">@{user?.username}</p>
           </div>
         </div>
-        <button 
+        <button
+          type="button"
           onClick={() => logout()}
           className="w-full flex items-center gap-3 px-4 py-2 text-sm text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
         >
@@ -129,7 +140,8 @@ export function Sidebar() {
   return (
     <>
       {/* Mobile Toggle */}
-      <button 
+      <button
+        type="button"
         onClick={() => setIsOpen(true)}
         className="lg:hidden fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-xl flex items-center justify-center active:scale-95 transition-transform"
       >
@@ -140,7 +152,7 @@ export function Sidebar() {
       <AnimatePresence>
         {isOpen && (
           <>
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -155,7 +167,8 @@ export function Sidebar() {
               className="fixed inset-y-0 left-0 w-[280px] z-50 lg:hidden"
             >
               <NavContent />
-              <button 
+              <button
+                type="button"
                 onClick={() => setIsOpen(false)}
                 className="absolute top-4 right-4 p-2 text-muted-foreground hover:text-foreground"
               >

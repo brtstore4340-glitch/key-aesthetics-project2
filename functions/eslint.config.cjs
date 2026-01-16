@@ -4,11 +4,7 @@ const tseslint = require("typescript-eslint");
 
 module.exports = [
   {
-    ignores: [
-      "node_modules/**",
-      "lib/**",
-      "eslint.config.cjs"
-    ]
+    ignores: ["node_modules/**", "lib/**", "eslint.config.cjs"],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
@@ -17,13 +13,13 @@ module.exports = [
     languageOptions: {
       parserOptions: {
         project: "./tsconfig.json",
-        tsconfigRootDir: __dirname
-      }
+        tsconfigRootDir: __dirname,
+      },
     },
     rules: {
-      "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }]
+      "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
       // ไม่ปิด no-explicit-any (strict ตามที่ต้องการ)
-    }
-  }
+    },
+  },
 ];
 // File: .firebaserc

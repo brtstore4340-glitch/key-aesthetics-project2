@@ -1,47 +1,61 @@
-import { useOrders, useUpdateOrder } from "@/hooks/use-orders";
-import { useAuth } from "@/hooks/use-auth";
 import { StatusBadge } from "@/components/StatusBadge";
-import { Link } from "wouter";
-import { format } from "date-fns";
-import { Loader2, Download } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/use-auth";
+import { useOrders, useUpdateOrder } from "@/hooks/use-orders";
 import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
 import { toJpeg } from "html-to-image";
+import { Download, Loader2 } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
+import { Link } from "wouter";
 
 export default function Orders() {
   const { user } = useAuth();
-  const [filter, setFilter] = useState<string>(user?.role === 'accounting' ? "submitted" : "all");
+  const [filter, setFilter] = useState<string>(user?.role === "accounting" ? "submitted" : "all");
   const { data: orders, isLoading } = useOrders(filter === "all" ? undefined : filter, user?.role);
   const { mutateAsync: updateOrder } = useUpdateOrder();
   const { toast } = useToast();
   const pickingRef = useRef<HTMLDivElement | null>(null);
 
   if (isLoading) {
-    return <div className="flex justify-center p-12"><Loader2 className="animate-spin text-primary" /></div>;
+    return (
+      <div className="flex justify-center p-12">
+        <Loader2 className="animate-spin text-primary" />
+      </div>
+    );
   }
 
-  const filters = user?.role === 'accounting' 
-    ? [{ id: "submitted", label: "สั่งซื้อ" }, { id: "verified", label: "กำลังจัด" }]
-    : [
-        { id: "all", label: "ทั้งหมด" },
-        { id: "draft", label: "บันทึก" },
-        { id: "submitted", label: "สั่งซื้อ" },
-        { id: "verified", label: "กำลังจัด" },
-      ];
+  const filters =
+    user?.role === "accounting"
+      ? [
+          { id: "submitted", label: "สั่งซื้อ" },
+          { id: "verified", label: "กำลังจัด" },
+        ]
+      : [
+          { id: "all", label: "ทั้งหมด" },
+          { id: "draft", label: "บันทึก" },
+          { id: "submitted", label: "สั่งซื้อ" },
+          { id: "verified", label: "กำลังจัด" },
+        ];
 
-  const pageTitle = user?.role === 'accounting' ? "Packing & Shipping" : "Orders";
-  const pageDesc = user?.role === 'accounting' ? "Manage outgoing shipments and packing lists" : "Manage and track order status";
+  const pageTitle = user?.role === "accounting" ? "Packing & Shipping" : "Orders";
+  const pageDesc =
+    user?.role === "accounting"
+      ? "Manage outgoing shipments and packing lists"
+      : "Manage and track order status";
   const sortedOrders = useMemo(() => {
     return (orders ?? []).slice().sort((a, b) => a.orderNo.localeCompare(b.orderNo));
   }, [orders]);
 
   const groupedTotals = useMemo(() => {
     const summary: Record<number, { name: string; quantity: number }> = {};
-    sortedOrders.forEach(order => {
-      order.items.forEach(item => {
+    sortedOrders.forEach((order) => {
+      order.items.forEach((item) => {
         const current = summary[item.productId] ?? { name: item.name, quantity: 0 };
-        summary[item.productId] = { name: current.name, quantity: current.quantity + item.quantity };
+        summary[item.productId] = {
+          name: current.name,
+          quantity: current.quantity + item.quantity,
+        };
       });
     });
     return Object.entries(summary)
@@ -51,7 +65,11 @@ export default function Orders() {
 
   const handleExportPickingList = async () => {
     if (!sortedOrders.length) {
-      toast({ title: "ไม่มีรายการสั่งซื้อ", description: "ไม่พบรายการสำหรับ export", variant: "destructive" });
+      toast({
+        title: "ไม่มีรายการสั่งซื้อ",
+        description: "ไม่พบรายการสำหรับ export",
+        variant: "destructive",
+      });
       return;
     }
     if (!pickingRef.current) return;
@@ -62,8 +80,8 @@ export default function Orders() {
       link.download = `picking-list-${Date.now()}.jpeg`;
       link.click();
 
-      const toUpdate = sortedOrders.filter(order => order.status === "submitted");
-      await Promise.all(toUpdate.map(order => updateOrder({ id: order.id, status: "verified" })));
+      const toUpdate = sortedOrders.filter((order) => order.status === "submitted");
+      await Promise.all(toUpdate.map((order) => updateOrder({ id: order.id, status: "verified" })));
       toast({ title: "Export สำเร็จ", description: "สถานะอัปเดตเป็นกำลังจัดแล้ว" });
     } catch (err: any) {
       toast({ title: "Export failed", description: err.message, variant: "destructive" });
@@ -77,7 +95,7 @@ export default function Orders() {
           <h1 className="text-3xl font-display font-bold">{pageTitle}</h1>
           <p className="text-muted-foreground">{pageDesc}</p>
         </div>
-        
+
         <div className="flex flex-wrap items-center gap-2">
           {user?.role === "accounting" && (
             <Button variant="secondary" className="gap-2" onClick={handleExportPickingList}>
@@ -86,21 +104,22 @@ export default function Orders() {
             </Button>
           )}
           <div className="flex items-center gap-2 bg-card border border-border p-1 rounded-xl">
-          {filters.map(f => (
-            <button
-              key={f.id}
-              onClick={() => setFilter(f.id)}
-              className={`
+            {filters.map((f) => (
+              <button
+                key={f.id}
+                onClick={() => setFilter(f.id)}
+                className={`
                 px-4 py-2 rounded-lg text-sm font-medium transition-all
-                ${filter === f.id 
-                  ? "bg-secondary text-foreground shadow-sm" 
-                  : "text-muted-foreground hover:text-foreground"
+                ${
+                  filter === f.id
+                    ? "bg-secondary text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
                 }
               `}
-            >
-              {f.label}
-            </button>
-          ))}
+              >
+                {f.label}
+              </button>
+            ))}
           </div>
         </div>
       </header>
@@ -128,34 +147,41 @@ export default function Orders() {
               {orders?.map((order) => (
                 <tr key={order.id} className="group hover:bg-secondary/20 transition-colors">
                   <td className="p-4 pl-6">
-                    <span className="font-mono text-sm font-medium text-foreground">{order.orderNo}</span>
+                    <span className="font-mono text-sm font-medium text-foreground">
+                      {order.orderNo}
+                    </span>
                   </td>
                   <td className="p-4">
                     <div className="flex flex-col">
-                      <span className="text-sm text-foreground">{format(new Date(order.createdAt!), 'MMM d, yyyy')}</span>
-                      <span className="text-xs text-muted-foreground">{format(new Date(order.createdAt!), 'h:mm a')}</span>
+                      <span className="text-sm text-foreground">
+                        {format(new Date(order.createdAt!), "MMM d, yyyy")}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {format(new Date(order.createdAt!), "h:mm a")}
+                      </span>
                     </div>
                   </td>
                   <td className="p-4">
-                    <StatusBadge status={order.status || 'draft'} />
+                    <StatusBadge status={order.status || "draft"} />
                   </td>
-                  <td className="p-4 text-sm text-muted-foreground">
-                    {order.items.length} items
-                  </td>
+                  <td className="p-4 text-sm text-muted-foreground">{order.items.length} items</td>
                   <td className="p-4 text-sm font-semibold text-foreground">
                     ${Number(order.total).toFixed(2)}
                   </td>
                   <td className="p-4 pr-6 text-right">
-                    <Link href={`/orders/${order.id}`} className="
+                    <Link
+                      href={`/orders/${order.id}`}
+                      className="
                       inline-block px-3 py-1.5 text-xs font-medium text-primary border border-primary/20 rounded-lg
                       hover:bg-primary/10 transition-colors
-                    ">
+                    "
+                    >
                       View Details
                     </Link>
                   </td>
                 </tr>
               ))}
-              
+
               {(!orders || orders.length === 0) && (
                 <tr>
                   <td colSpan={6} className="p-12 text-center text-muted-foreground">
@@ -186,7 +212,7 @@ export default function Orders() {
                 </tr>
               </thead>
               <tbody>
-                {sortedOrders.map(order => (
+                {sortedOrders.map((order) =>
                   order.items
                     .slice()
                     .sort((a, b) => a.productId - b.productId)
@@ -194,14 +220,18 @@ export default function Orders() {
                       <tr key={`${order.id}-${item.productId}-${idx}`}>
                         <td className="border border-black p-2">{order.orderNo}</td>
                         <td className="border border-black p-2">{item.productId}</td>
-                        <td className="border border-black p-2">{order.customerInfo?.doctorName || "-"}</td>
-                        <td className="border border-black p-2">{order.customerInfo?.phone || "-"}</td>
+                        <td className="border border-black p-2">
+                          {order.customerInfo?.doctorName || "-"}
+                        </td>
+                        <td className="border border-black p-2">
+                          {order.customerInfo?.phone || "-"}
+                        </td>
                         <td className="border border-black p-2">{order.createdBy ?? "-"}</td>
                         <td className="border border-black p-2">{item.name}</td>
                         <td className="border border-black p-2 text-right">{item.quantity}</td>
                       </tr>
-                    ))
-                ))}
+                    )),
+                )}
               </tbody>
             </table>
 
@@ -216,7 +246,7 @@ export default function Orders() {
                   </tr>
                 </thead>
                 <tbody>
-                  {groupedTotals.map(item => (
+                  {groupedTotals.map((item) => (
                     <tr key={item.productId}>
                       <td className="border border-black p-2">{item.productId}</td>
                       <td className="border border-black p-2">{item.name}</td>

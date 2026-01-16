@@ -1,12 +1,16 @@
+import { type LoginInput, api } from "@shared/routes";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, type LoginInput } from "@shared/routes";
 import { useLocation } from "wouter";
 
 export function useAuth() {
   const queryClient = useQueryClient();
   const [_, setLocation] = useLocation();
 
-  const { data: user, isLoading, error } = useQuery({
+  const {
+    data: user,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["/api/user"],
     queryFn: async () => {
       const res = await fetch(api.auth.me.path, { credentials: "include" });
@@ -15,7 +19,7 @@ export function useAuth() {
       return api.auth.me.responses[200].parse(await res.json());
     },
     retry: false,
-    staleTime: Infinity, 
+    staleTime: Number.POSITIVE_INFINITY,
   });
 
   const loginMutation = useMutation({
@@ -26,7 +30,7 @@ export function useAuth() {
         body: JSON.stringify(credentials),
         credentials: "include",
       });
-      
+
       if (!res.ok) {
         if (res.status === 401) throw new Error("Invalid credentials");
         throw new Error("Login failed");
@@ -41,9 +45,9 @@ export function useAuth() {
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch(api.auth.logout.path, { 
+      const res = await fetch(api.auth.logout.path, {
         method: api.auth.logout.method,
-        credentials: "include" 
+        credentials: "include",
       });
       if (!res.ok) throw new Error("Logout failed");
     },

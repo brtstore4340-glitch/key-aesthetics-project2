@@ -1,10 +1,10 @@
 import { useAuth } from "@/hooks/use-auth";
-import { useState, useEffect } from "react";
-import { useLocation } from "wouter";
-import { Loader2, ArrowRight, Delete } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { motion, AnimatePresence } from "framer-motion";
 import { api } from "@shared/routes";
+import { AnimatePresence, motion } from "framer-motion";
+import { ArrowRight, Delete, Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useLocation } from "wouter";
 
 export default function Login() {
   const { login, isLoggingIn, user } = useAuth();
@@ -58,10 +58,10 @@ export default function Login() {
       await login({ username: uname, pin: upin });
       toast({ title: "Welcome back!", description: "Successfully logged in." });
     } catch (err: any) {
-      toast({ 
-        title: "Login failed", 
-        description: err.message, 
-        variant: "destructive" 
+      toast({
+        title: "Login failed",
+        description: err.message,
+        variant: "destructive",
       });
       setPin(""); // Clear PIN on failure
     }
@@ -77,7 +77,7 @@ export default function Login() {
       <div className="w-full max-w-md bg-card border border-border/50 p-8 rounded-3xl shadow-2xl relative z-10">
         <div className="text-center mb-8">
           <div className="w-16 h-16 mx-auto bg-gradient-to-tr from-primary to-amber-300 rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20 mb-6 transform rotate-3">
-             <span className="text-3xl font-bold text-primary-foreground font-display">S</span>
+            <span className="text-3xl font-bold text-primary-foreground font-display">S</span>
           </div>
           <h1 className="text-2xl font-display font-bold text-foreground">Welcome Back</h1>
           <p className="text-muted-foreground mt-2">Enter your username and 4-digit PIN</p>
@@ -88,16 +88,16 @@ export default function Login() {
                 health === "ok"
                   ? "bg-green-500"
                   : health === "checking"
-                  ? "bg-amber-400"
-                  : "bg-red-500"
+                    ? "bg-amber-400"
+                    : "bg-red-500"
               }`}
             />
             <span>
               {health === "ok"
                 ? "Firebase connected"
                 : health === "checking"
-                ? "Checking Firebase..."
-                : "Firebase unreachable"}
+                  ? "Checking Firebase..."
+                  : "Firebase unreachable"}
             </span>
           </div>
         </div>

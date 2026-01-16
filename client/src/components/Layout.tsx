@@ -1,7 +1,7 @@
-import { ReactNode } from "react";
-import { Sidebar } from "./Sidebar";
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
+import type { ReactNode } from "react";
+import { Sidebar } from "./Sidebar";
 
 export function Layout({ children }: { children: ReactNode }) {
   const { isLoading } = useAuth();

@@ -1,22 +1,27 @@
-import { useOrder, useUpdateOrder } from "@/hooks/use-orders";
-import { useAuth } from "@/hooks/use-auth";
-import { useRoute, Link } from "wouter";
-import { Loader2, ArrowLeft, CheckCircle2, XCircle } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
-import { format } from "date-fns";
+import { useAuth } from "@/hooks/use-auth";
+import { useOrder, useUpdateOrder } from "@/hooks/use-orders";
 import { useToast } from "@/hooks/use-toast";
 import type { UpdateOrderRequest } from "@shared/routes";
+import { format } from "date-fns";
+import { ArrowLeft, CheckCircle2, Loader2, XCircle } from "lucide-react";
+import { Link, useRoute } from "wouter";
 
 export default function OrderDetail() {
   const [match, params] = useRoute("/orders/:id");
-  const id = params ? parseInt(params.id) : 0;
-  
+  const id = params ? Number.parseInt(params.id) : 0;
+
   const { data: order, isLoading } = useOrder(id);
   const { mutateAsync: updateOrder, isPending } = useUpdateOrder();
   const { user } = useAuth();
   const { toast } = useToast();
 
-  if (isLoading) return <div className="flex justify-center p-12"><Loader2 className="animate-spin text-primary" /></div>;
+  if (isLoading)
+    return (
+      <div className="flex justify-center p-12">
+        <Loader2 className="animate-spin text-primary" />
+      </div>
+    );
   if (!order) return <div className="p-12 text-center">Order not found</div>;
 
   const handleStatusChange = async (newStatus: UpdateOrderRequest["status"]) => {
@@ -36,23 +41,27 @@ export default function OrderDetail() {
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between gap-6">
         <div className="space-y-2">
-          <Link href="/orders" className="text-sm text-muted-foreground hover:text-primary flex items-center gap-1 mb-2">
+          <Link
+            href="/orders"
+            className="text-sm text-muted-foreground hover:text-primary flex items-center gap-1 mb-2"
+          >
             <ArrowLeft className="w-4 h-4" /> Back to Orders
           </Link>
           <div className="flex items-center gap-4">
             <h1 className="text-3xl font-display font-bold">{order.orderNo}</h1>
-            <StatusBadge status={order.status || 'draft'} />
+            <StatusBadge status={order.status || "draft"} />
           </div>
           <p className="text-muted-foreground">
-            Created on {format(new Date(order.createdAt!), 'MMMM d, yyyy')} at {format(new Date(order.createdAt!), 'h:mm a')}
+            Created on {format(new Date(order.createdAt!), "MMMM d, yyyy")} at{" "}
+            {format(new Date(order.createdAt!), "h:mm a")}
           </p>
         </div>
 
         {/* Action Buttons */}
         <div className="flex gap-3 items-start">
-          {order.status === 'draft' && (
+          {order.status === "draft" && (
             <button
-              onClick={() => handleStatusChange('submitted')}
+              onClick={() => handleStatusChange("submitted")}
               disabled={isPending}
               className="px-6 py-2.5 bg-blue-500 text-white rounded-xl font-medium shadow-lg shadow-blue-500/20 hover:bg-blue-600 transition-colors disabled:opacity-50"
             >
@@ -60,10 +69,10 @@ export default function OrderDetail() {
             </button>
           )}
 
-          {(isAdmin || isAccounting) && order.status === 'submitted' && (
+          {(isAdmin || isAccounting) && order.status === "submitted" && (
             <>
               <button
-                onClick={() => handleStatusChange('verified')}
+                onClick={() => handleStatusChange("verified")}
                 disabled={isPending}
                 className="px-6 py-2.5 bg-mint text-teal-950 rounded-xl font-medium shadow-lg shadow-mint/20 hover:bg-emerald-300 transition-colors disabled:opacity-50 flex items-center gap-2"
               >
@@ -71,7 +80,7 @@ export default function OrderDetail() {
               </button>
               {isAdmin && (
                 <button
-                  onClick={() => handleStatusChange('cancelled')}
+                  onClick={() => handleStatusChange("cancelled")}
                   disabled={isPending}
                   className="px-6 py-2.5 bg-destructive/10 text-destructive border border-destructive/20 rounded-xl font-medium hover:bg-destructive/20 transition-colors disabled:opacity-50 flex items-center gap-2"
                 >
@@ -81,9 +90,9 @@ export default function OrderDetail() {
             </>
           )}
 
-          {isAccounting && order.status === 'verified' && (
+          {isAccounting && order.status === "verified" && (
             <button
-              onClick={() => handleStatusChange('submitted')}
+              onClick={() => handleStatusChange("submitted")}
               disabled={isPending}
               className="px-6 py-2.5 bg-blue-500/10 text-blue-600 border border-blue-500/20 rounded-xl font-medium hover:bg-blue-500/20 transition-colors disabled:opacity-50"
             >
@@ -102,14 +111,19 @@ export default function OrderDetail() {
             </div>
             <div className="divide-y divide-border/40">
               {order.items.map((item, idx) => (
-                <div key={idx} className="p-4 flex items-center justify-between hover:bg-secondary/20">
+                <div
+                  key={idx}
+                  className="p-4 flex items-center justify-between hover:bg-secondary/20"
+                >
                   <div className="flex items-center gap-4">
                     <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center text-xs font-bold text-muted-foreground">
                       {idx + 1}
                     </div>
                     <div>
                       <p className="font-medium">{item.name}</p>
-                      <p className="text-sm text-muted-foreground">${Number(item.price).toFixed(2)} per unit</p>
+                      <p className="text-sm text-muted-foreground">
+                        ${Number(item.price).toFixed(2)} per unit
+                      </p>
                     </div>
                   </div>
                   <div className="text-right">
@@ -120,7 +134,9 @@ export default function OrderDetail() {
               ))}
               <div className="p-6 bg-secondary/10 flex justify-between items-center">
                 <span className="font-bold text-lg">Total Amount</span>
-                <span className="font-display font-bold text-2xl text-primary">${Number(order.total).toFixed(2)}</span>
+                <span className="font-display font-bold text-2xl text-primary">
+                  ${Number(order.total).toFixed(2)}
+                </span>
               </div>
             </div>
           </div>
@@ -129,7 +145,9 @@ export default function OrderDetail() {
         {/* Sidebar Info */}
         <div className="space-y-6">
           <div className="bg-card border border-border/50 rounded-2xl p-6 shadow-sm">
-            <h3 className="font-semibold mb-4 text-sm uppercase text-muted-foreground tracking-wider">Customer Info</h3>
+            <h3 className="font-semibold mb-4 text-sm uppercase text-muted-foreground tracking-wider">
+              Customer Info
+            </h3>
             <div className="space-y-4">
               <div>
                 <label className="text-xs text-muted-foreground">ผู้สั่ง</label>
@@ -151,31 +169,39 @@ export default function OrderDetail() {
           </div>
 
           <div className="bg-card border border-border/50 rounded-2xl p-6 shadow-sm">
-             <h3 className="font-semibold mb-4 text-sm uppercase text-muted-foreground tracking-wider">Timeline</h3>
-             <div className="space-y-6 relative pl-2">
-               <div className="absolute left-[3px] top-2 bottom-2 w-0.5 bg-border/50"></div>
-               
-               <div className="relative pl-6">
-                 <div className="absolute left-[-4px] top-1.5 w-2 h-2 rounded-full bg-primary ring-4 ring-background"></div>
-                 <p className="text-sm font-medium">Order Created</p>
-                 <p className="text-xs text-muted-foreground">{format(new Date(order.createdAt!), 'MMM d, h:mm a')}</p>
-               </div>
+            <h3 className="font-semibold mb-4 text-sm uppercase text-muted-foreground tracking-wider">
+              Timeline
+            </h3>
+            <div className="space-y-6 relative pl-2">
+              <div className="absolute left-[3px] top-2 bottom-2 w-0.5 bg-border/50" />
 
-               {order.status !== 'draft' && (
-                  <div className="relative pl-6">
-                    <div className="absolute left-[-4px] top-1.5 w-2 h-2 rounded-full bg-blue-500 ring-4 ring-background"></div>
-                <p className="text-sm font-medium">สั่งซื้อ</p>
+              <div className="relative pl-6">
+                <div className="absolute left-[-4px] top-1.5 w-2 h-2 rounded-full bg-primary ring-4 ring-background" />
+                <p className="text-sm font-medium">Order Created</p>
+                <p className="text-xs text-muted-foreground">
+                  {format(new Date(order.createdAt!), "MMM d, h:mm a")}
+                </p>
               </div>
-               )}
 
-               {order.status === 'verified' && (
-                  <div className="relative pl-6">
-                    <div className="absolute left-[-4px] top-1.5 w-2 h-2 rounded-full bg-mint ring-4 ring-background"></div>
-                    <p className="text-sm font-medium text-mint">กำลังจัด</p>
-                    {order.verifiedAt && <p className="text-xs text-muted-foreground">{format(new Date(order.verifiedAt), 'MMM d, h:mm a')}</p>}
-                  </div>
-               )}
-             </div>
+              {order.status !== "draft" && (
+                <div className="relative pl-6">
+                  <div className="absolute left-[-4px] top-1.5 w-2 h-2 rounded-full bg-blue-500 ring-4 ring-background" />
+                  <p className="text-sm font-medium">สั่งซื้อ</p>
+                </div>
+              )}
+
+              {order.status === "verified" && (
+                <div className="relative pl-6">
+                  <div className="absolute left-[-4px] top-1.5 w-2 h-2 rounded-full bg-mint ring-4 ring-background" />
+                  <p className="text-sm font-medium text-mint">กำลังจัด</p>
+                  {order.verifiedAt && (
+                    <p className="text-xs text-muted-foreground">
+                      {format(new Date(order.verifiedAt), "MMM d, h:mm a")}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

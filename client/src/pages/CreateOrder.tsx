@@ -1,16 +1,32 @@
-import { useEffect, useMemo, useState } from "react";
-import { useProducts } from "@/hooks/use-products";
-import { useCreateOrder } from "@/hooks/use-orders";
-import { useLocation } from "wouter";
-import { useToast } from "@/hooks/use-toast";
-import { Loader2, Plus, Minus, ArrowRight, Search, ShoppingCart, ImagePlus, CreditCard } from "lucide-react";
-import { type Product } from "@shared/schema";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useCreateOrder } from "@/hooks/use-orders";
+import { useProducts } from "@/hooks/use-products";
+import { useToast } from "@/hooks/use-toast";
+import type { Product } from "@shared/schema";
+import {
+  ArrowRight,
+  CreditCard,
+  ImagePlus,
+  Loader2,
+  Minus,
+  Plus,
+  Search,
+  ShoppingCart,
+} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { useLocation } from "wouter";
 
 interface CartItem {
   productId: number;
@@ -24,14 +40,14 @@ export default function CreateOrder() {
   const { mutateAsync: createOrder, isPending } = useCreateOrder();
   const [_, setLocation] = useLocation();
   const { toast } = useToast();
-  
+
   const [cart, setCart] = useState<CartItem[]>([]);
   const [search, setSearch] = useState("");
   const [customerInfo, setCustomerInfo] = useState({
     doctorName: "",
     doctorId: "",
     phone: "",
-    address: ""
+    address: "",
   });
   const [offeredPrice, setOfferedPrice] = useState("");
   const [discountInput, setDiscountInput] = useState("0");
@@ -43,19 +59,17 @@ export default function CreateOrder() {
 
   const promotions = ["ไม่มีโปรโมชั่น", "ลด 5%", "ลด 10%", "แถมสินค้า"];
 
-  const filteredProducts = products?.filter(p => {
+  const filteredProducts = products?.filter((p) => {
     const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
     return matchesSearch;
   });
 
   const addToCart = (product: Product) => {
-    setCart(prev => {
-      const existing = prev.find(item => item.productId === product.id);
+    setCart((prev) => {
+      const existing = prev.find((item) => item.productId === product.id);
       if (existing) {
-        return prev.map(item => 
-          item.productId === product.id 
-            ? { ...item, quantity: item.quantity + 1 } 
-            : item
+        return prev.map((item) =>
+          item.productId === product.id ? { ...item, quantity: item.quantity + 1 } : item,
         );
       }
       return [...prev, { productId: product.id, product, quantity: 1, promotion: promotions[0] }];
@@ -63,27 +77,28 @@ export default function CreateOrder() {
   };
 
   const updateQuantity = (productId: number, delta: number) => {
-    setCart(prev => {
+    setCart((prev) => {
       const next = prev
-        .map(item => {
+        .map((item) => {
           if (item.productId === productId) {
             return { ...item, quantity: item.quantity + delta };
           }
           return item;
         })
-        .filter(item => item.quantity > 0);
+        .filter((item) => item.quantity > 0);
       return next;
     });
   };
 
   const updatePromotion = (productId: number, promotion: string) => {
-    setCart(prev => prev.map(item => (
-      item.productId === productId ? { ...item, promotion } : item
-    )));
+    setCart((prev) =>
+      prev.map((item) => (item.productId === productId ? { ...item, promotion } : item)),
+    );
   };
 
-  const subTotal = cart.reduce((sum, item) => sum + (Number(item.product.price) * item.quantity), 0);
-  const isRequiredInfoComplete = customerInfo.doctorName.trim().length > 0 && customerInfo.address.trim().length > 0;
+  const subTotal = cart.reduce((sum, item) => sum + Number(item.product.price) * item.quantity, 0);
+  const isRequiredInfoComplete =
+    customerInfo.doctorName.trim().length > 0 && customerInfo.address.trim().length > 0;
   const canSubmit = cart.length > 0 && isRequiredInfoComplete && !isPending;
 
   const parseAmount = (value: string) => {
@@ -103,8 +118,14 @@ export default function CreateOrder() {
     }
   }, [subTotal]);
 
-  const idCardPreview = useMemo(() => (idCardFile ? URL.createObjectURL(idCardFile) : ""), [idCardFile]);
-  const paymentPreview = useMemo(() => (paymentFile ? URL.createObjectURL(paymentFile) : ""), [paymentFile]);
+  const idCardPreview = useMemo(
+    () => (idCardFile ? URL.createObjectURL(idCardFile) : ""),
+    [idCardFile],
+  );
+  const paymentPreview = useMemo(
+    () => (paymentFile ? URL.createObjectURL(paymentFile) : ""),
+    [paymentFile],
+  );
 
   useEffect(() => {
     return () => {
@@ -147,20 +168,20 @@ export default function CreateOrder() {
     }
 
     return {
-      items: cart.map(item => ({
+      items: cart.map((item) => ({
         productId: item.productId,
         name: item.product.name,
         quantity: item.quantity,
         price: Number(item.product.price),
-        promotion: item.promotion
+        promotion: item.promotion,
       })),
       total: parseAmount(totalInput || subTotal.toFixed(2)).toString(),
       status,
       customerInfo: {
         ...customerInfo,
-        offeredPrice
+        offeredPrice,
       },
-      attachments
+      attachments,
     };
   };
 
@@ -178,11 +199,19 @@ export default function CreateOrder() {
 
   const handleCheckout = async () => {
     if (!canSubmit) {
-      toast({ title: "กรอกข้อมูลไม่ครบ", description: "กรุณากรอกข้อมูลผู้ซื้อและเพิ่มสินค้าในตะกร้า", variant: "destructive" });
+      toast({
+        title: "กรอกข้อมูลไม่ครบ",
+        description: "กรุณากรอกข้อมูลผู้ซื้อและเพิ่มสินค้าในตะกร้า",
+        variant: "destructive",
+      });
       return;
     }
     if (!idCardFile || !paymentFile) {
-      toast({ title: "แนบไฟล์ไม่ครบ", description: "กรุณาแนบรูปบัตรประชาชนและสลิปชำระเงิน", variant: "destructive" });
+      toast({
+        title: "แนบไฟล์ไม่ครบ",
+        description: "กรุณาแนบรูปบัตรประชาชนและสลิปชำระเงิน",
+        variant: "destructive",
+      });
       return;
     }
     try {
@@ -201,14 +230,23 @@ export default function CreateOrder() {
     }
   };
 
-  if (isLoading) return <div className="flex justify-center p-12"><Loader2 className="animate-spin text-primary" /></div>;
+  if (isLoading)
+    return (
+      <div className="flex justify-center p-12">
+        <Loader2 className="animate-spin text-primary" />
+      </div>
+    );
 
   return (
     <div className="flex flex-col gap-6 h-[calc(100vh-120px)] overflow-hidden">
       <div className="flex justify-end">
         <Sheet>
           <SheetTrigger asChild>
-            <Button variant="outline" className="relative h-11 w-11 rounded-full" aria-label="My cart">
+            <Button
+              variant="outline"
+              className="relative h-11 w-11 rounded-full"
+              aria-label="My cart"
+            >
               <ShoppingCart className="w-5 h-5" />
               {cart.length > 0 && (
                 <span className="absolute -top-1 -right-1 h-5 min-w-[20px] px-1 rounded-full bg-primary text-[10px] text-primary-foreground flex items-center justify-center">
@@ -231,11 +269,18 @@ export default function CreateOrder() {
                   ยังไม่มีสินค้าในตะกร้า
                 </div>
               )}
-              {cart.map(item => (
-                <div key={item.productId} className="flex gap-3 rounded-2xl border border-border/50 p-3">
+              {cart.map((item) => (
+                <div
+                  key={item.productId}
+                  className="flex gap-3 rounded-2xl border border-border/50 p-3"
+                >
                   <div className="w-20 h-20 rounded-xl overflow-hidden bg-secondary/20 border border-border/30">
                     <img
-                      src={Array.isArray(item.product.images) && item.product.images[0] ? String(item.product.images[0]) : "https://placehold.co/200x200/171A1D/D4B16A?text=Product"}
+                      src={
+                        Array.isArray(item.product.images) && item.product.images[0]
+                          ? String(item.product.images[0])
+                          : "https://placehold.co/200x200/171A1D/D4B16A?text=Product"
+                      }
                       alt={item.product.name}
                       className="w-full h-full object-cover"
                     />
@@ -243,10 +288,15 @@ export default function CreateOrder() {
                   <div className="flex-1 space-y-2">
                     <div>
                       <p className="font-semibold text-sm">{item.product.name}</p>
-                      <p className="text-xs text-muted-foreground">฿{Number(item.product.price).toLocaleString()}</p>
+                      <p className="text-xs text-muted-foreground">
+                        ฿{Number(item.product.price).toLocaleString()}
+                      </p>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant="secondary" className="text-[10px] uppercase tracking-wide text-primary/90">
+                      <Badge
+                        variant="secondary"
+                        className="text-[10px] uppercase tracking-wide text-primary/90"
+                      >
                         {item.promotion}
                       </Badge>
                     </div>
@@ -259,7 +309,9 @@ export default function CreateOrder() {
                       >
                         <Minus className="w-4 h-4" />
                       </button>
-                      <span className="text-sm font-mono font-bold w-6 text-center">{item.quantity}</span>
+                      <span className="text-sm font-mono font-bold w-6 text-center">
+                        {item.quantity}
+                      </span>
                       <button
                         onClick={() => updateQuantity(item.productId, 1)}
                         className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-secondary"
@@ -321,7 +373,9 @@ export default function CreateOrder() {
           </div>
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <label htmlFor="doctorName" className="text-sm font-medium">ชื่อ-นามสกุลแพทย์ (ระบุคำนำหน้า) *</label>
+              <label htmlFor="doctorName" className="text-sm font-medium">
+                ชื่อ-นามสกุลแพทย์ (ระบุคำนำหน้า) *
+              </label>
               <Input
                 className="bg-secondary/20 border-border/40 focus:ring-primary/20 h-11"
                 name="doctorName"
@@ -329,11 +383,13 @@ export default function CreateOrder() {
                 placeholder="นพ.สมชาย ใจดี"
                 required
                 value={customerInfo.doctorName}
-                onChange={e => setCustomerInfo({ ...customerInfo, doctorName: e.target.value })}
+                onChange={(e) => setCustomerInfo({ ...customerInfo, doctorName: e.target.value })}
               />
             </div>
             <div className="space-y-2">
-              <label htmlFor="doctorId" className="text-sm font-medium">เลขบัตรประชาชน (ตัวเลขเท่านั้น)</label>
+              <label htmlFor="doctorId" className="text-sm font-medium">
+                เลขบัตรประชาชน (ตัวเลขเท่านั้น)
+              </label>
               <Input
                 className="bg-secondary/20 border-border/40 focus:ring-primary/20 h-11"
                 name="doctorId"
@@ -342,32 +398,36 @@ export default function CreateOrder() {
                 pattern="[0-9]*"
                 placeholder="1234567890123"
                 value={customerInfo.doctorId}
-                onChange={e => {
+                onChange={(e) => {
                   const digitsOnly = e.target.value.replace(/\D/g, "");
                   setCustomerInfo({ ...customerInfo, doctorId: digitsOnly });
                 }}
               />
             </div>
             <div className="space-y-2">
-              <label htmlFor="phone" className="text-sm font-medium">เบอร์โทร</label>
+              <label htmlFor="phone" className="text-sm font-medium">
+                เบอร์โทร
+              </label>
               <Input
                 className="bg-secondary/20 border-border/40 focus:ring-primary/20 h-11"
                 name="phone"
                 id="phone"
                 placeholder="08x-xxx-xxxx"
                 value={customerInfo.phone}
-                onChange={e => setCustomerInfo({ ...customerInfo, phone: e.target.value })}
+                onChange={(e) => setCustomerInfo({ ...customerInfo, phone: e.target.value })}
               />
             </div>
             <div className="space-y-2 md:col-span-2">
-              <label htmlFor="address" className="text-sm font-medium">ที่อยู่จัดส่งสินค้า *</label>
+              <label htmlFor="address" className="text-sm font-medium">
+                ที่อยู่จัดส่งสินค้า *
+              </label>
               <textarea
                 className="w-full bg-secondary/20 border border-border/40 rounded-xl px-4 py-3 text-sm focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/5 transition-all resize-none h-24"
                 name="address"
                 id="address"
                 placeholder="รายละเอียดที่อยู่จัดส่งสินค้า"
                 value={customerInfo.address}
-                onChange={e => setCustomerInfo({ ...customerInfo, address: e.target.value })}
+                onChange={(e) => setCustomerInfo({ ...customerInfo, address: e.target.value })}
               />
             </div>
           </div>
@@ -381,7 +441,9 @@ export default function CreateOrder() {
               บันทึกแบบร่าง
             </Button>
             {!isRequiredInfoComplete && (
-              <p className="text-xs text-muted-foreground flex items-center">กรุณากรอกข้อมูลผู้ซื้อให้ครบ</p>
+              <p className="text-xs text-muted-foreground flex items-center">
+                กรุณากรอกข้อมูลผู้ซื้อให้ครบ
+              </p>
             )}
           </div>
         </CardContent>
@@ -402,14 +464,14 @@ export default function CreateOrder() {
                 id="productSearch"
                 placeholder="ค้นหาสินค้า"
                 value={search}
-                onChange={e => setSearch(e.target.value)}
+                onChange={(e) => setSearch(e.target.value)}
               />
             </div>
           </div>
 
           <div className="flex-1 overflow-y-auto pr-2 no-scrollbar space-y-4">
-            {filteredProducts?.map(product => {
-              const cartItem = cart.find(item => item.productId === product.id);
+            {filteredProducts?.map((product) => {
+              const cartItem = cart.find((item) => item.productId === product.id);
               return (
                 <div
                   key={product.id}
@@ -417,7 +479,11 @@ export default function CreateOrder() {
                 >
                   <div className="w-full lg:w-44 aspect-[4/3] rounded-xl overflow-hidden bg-secondary/20 border border-border/30">
                     <img
-                      src={Array.isArray(product.images) && product.images[0] ? String(product.images[0]) : "https://placehold.co/600x400/171A1D/D4B16A?text=Product"}
+                      src={
+                        Array.isArray(product.images) && product.images[0]
+                          ? String(product.images[0])
+                          : "https://placehold.co/600x400/171A1D/D4B16A?text=Product"
+                      }
                       alt={product.name}
                       className="w-full h-full object-cover"
                     />
@@ -426,17 +492,21 @@ export default function CreateOrder() {
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                       <div>
                         <h3 className="font-semibold text-lg leading-tight">{product.name}</h3>
-                        <p className="text-sm text-muted-foreground">ราคา ฿{Number(product.price).toLocaleString()}</p>
+                        <p className="text-sm text-muted-foreground">
+                          ราคา ฿{Number(product.price).toLocaleString()}
+                        </p>
                       </div>
                       <div className="flex items-center gap-2 bg-background/70 rounded-lg p-1">
                         <button
-                          onClick={() => cartItem ? updateQuantity(product.id, -1) : null}
+                          onClick={() => (cartItem ? updateQuantity(product.id, -1) : null)}
                           className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-secondary transition-colors"
                           disabled={!cartItem}
                         >
                           <Minus className="w-4 h-4" />
                         </button>
-                        <span className="text-sm font-mono font-bold w-5 text-center">{cartItem?.quantity ?? 0}</span>
+                        <span className="text-sm font-mono font-bold w-5 text-center">
+                          {cartItem?.quantity ?? 0}
+                        </span>
                         <button
                           onClick={() => addToCart(product)}
                           className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-secondary transition-colors"
@@ -452,11 +522,13 @@ export default function CreateOrder() {
                       <select
                         className="h-10 rounded-xl border border-border/40 bg-secondary/20 px-3 text-sm focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/5"
                         value={cartItem?.promotion ?? promotions[0]}
-                        onChange={e => updatePromotion(product.id, e.target.value)}
+                        onChange={(e) => updatePromotion(product.id, e.target.value)}
                         disabled={!cartItem}
                       >
-                        {promotions.map(promotion => (
-                          <option key={promotion} value={promotion}>{promotion}</option>
+                        {promotions.map((promotion) => (
+                          <option key={promotion} value={promotion}>
+                            {promotion}
+                          </option>
                         ))}
                       </select>
                     </div>
@@ -470,10 +542,14 @@ export default function CreateOrder() {
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div>
                 <p className="text-sm text-muted-foreground uppercase tracking-widest">ราคารวม</p>
-                <p className="text-3xl font-display font-bold text-primary">฿{subTotal.toLocaleString()}</p>
+                <p className="text-3xl font-display font-bold text-primary">
+                  ฿{subTotal.toLocaleString()}
+                </p>
               </div>
               <div className="w-full sm:w-64 space-y-2">
-                <label htmlFor="offeredPrice" className="text-sm font-medium">ราคาที่ผู้แทนเสนอ</label>
+                <label htmlFor="offeredPrice" className="text-sm font-medium">
+                  ราคาที่ผู้แทนเสนอ
+                </label>
                 <Input
                   className="bg-secondary/20 border-border/40 focus:ring-primary/20 h-11"
                   name="offeredPrice"
@@ -481,7 +557,7 @@ export default function CreateOrder() {
                   inputMode="decimal"
                   placeholder="กรอกราคาเสนอ"
                   value={offeredPrice}
-                  onChange={e => setOfferedPrice(e.target.value)}
+                  onChange={(e) => setOfferedPrice(e.target.value)}
                 />
               </div>
             </div>
@@ -490,7 +566,13 @@ export default function CreateOrder() {
               disabled={!canSubmit}
               className="w-full h-12 rounded-2xl bg-primary text-primary-foreground text-lg font-bold shadow-2xl shadow-primary/30 hover:shadow-primary/50 hover:-translate-y-1 transition-all active:scale-95 disabled:opacity-50 disabled:translate-y-0 gap-3"
             >
-              {isPending ? <Loader2 className="animate-spin w-6 h-6" /> : <>บันทึก <ArrowRight className="w-5 h-5" /></>}
+              {isPending ? (
+                <Loader2 className="animate-spin w-6 h-6" />
+              ) : (
+                <>
+                  บันทึก <ArrowRight className="w-5 h-5" />
+                </>
+              )}
             </Button>
           </div>
         </CardContent>
@@ -516,7 +598,11 @@ export default function CreateOrder() {
                 onChange={(e) => setIdCardFile(e.target.files?.[0] ?? null)}
               />
               {idCardPreview && (
-                <img src={idCardPreview} alt="ID card preview" className="w-full rounded-xl border border-border/40" />
+                <img
+                  src={idCardPreview}
+                  alt="ID card preview"
+                  className="w-full rounded-xl border border-border/40"
+                />
               )}
             </div>
             <div className="space-y-2">
@@ -531,13 +617,19 @@ export default function CreateOrder() {
                 onChange={(e) => setPaymentFile(e.target.files?.[0] ?? null)}
               />
               {paymentPreview && (
-                <img src={paymentPreview} alt="Payment preview" className="w-full rounded-xl border border-border/40" />
+                <img
+                  src={paymentPreview}
+                  alt="Payment preview"
+                  className="w-full rounded-xl border border-border/40"
+                />
               )}
             </div>
           </div>
 
           <DialogFooter>
-            <Button variant="secondary" onClick={() => setIsCheckoutOpen(false)}>ยกเลิก</Button>
+            <Button variant="secondary" onClick={() => setIsCheckoutOpen(false)}>
+              ยกเลิก
+            </Button>
             <Button onClick={handleCheckout}>ยืนยัน Checkout</Button>
           </DialogFooter>
         </DialogContent>

@@ -1,5 +1,5 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api, buildUrl, type CreateOrderRequest, type UpdateOrderRequest } from "@shared/routes";
+import { type CreateOrderRequest, type UpdateOrderRequest, api, buildUrl } from "@shared/routes";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 export function useOrders(status?: string, role?: string) {
   return useQuery({
@@ -8,7 +8,7 @@ export function useOrders(status?: string, role?: string) {
       const queryParams = new URLSearchParams();
       if (status) queryParams.append("status", status);
       if (role) queryParams.append("role", role);
-      
+
       const url = `${api.orders.list.path}?${queryParams.toString()}`;
       const res = await fetch(url, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch orders");
@@ -26,7 +26,7 @@ export function useOrder(id: number) {
       if (!res.ok) throw new Error("Failed to fetch order");
       return api.orders.get.responses[200].parse(await res.json());
     },
-    enabled: !!id && !isNaN(id),
+    enabled: !!id && !Number.isNaN(id),
   });
 }
 

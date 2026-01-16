@@ -1,20 +1,40 @@
-import { useProducts, useCategories } from "@/hooks/use-products";
-import { Loader2, Plus, Upload, FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
-import * as XLSX from "xlsx";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { api } from "@shared/routes";
-import { useAuth } from "@/hooks/use-auth";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { insertProductSchema, type Product, type Category } from "@shared/schema";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useAuth } from "@/hooks/use-auth";
+import { useCategories, useProducts } from "@/hooks/use-products";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { api } from "@shared/routes";
+import { type Category, type Product, insertProductSchema } from "@shared/schema";
+import { FileDown, Loader2, Plus, Upload } from "lucide-react";
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import * as XLSX from "xlsx";
 
 export default function Products() {
   const { data: products, isLoading } = useProducts();
@@ -32,8 +52,8 @@ export default function Products() {
       categoryId: undefined as unknown as number,
       images: [] as string[],
       stock: 0,
-      isEnabled: true
-    }
+      isEnabled: true,
+    },
   });
 
   const onSubmit = async (data: any) => {
@@ -50,7 +70,12 @@ export default function Products() {
 
   const handleExportTemplate = () => {
     const ws = XLSX.utils.json_to_sheet([
-      { "Product Name": "Example Product", "Normal Price": "100.00", "Pic (001.jpg)": "image_url_here", "Unit": "10" }
+      {
+        "Product Name": "Example Product",
+        "Normal Price": "100.00",
+        "Pic (001.jpg)": "image_url_here",
+        Unit: "10",
+      },
     ]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Template");
@@ -70,14 +95,14 @@ export default function Products() {
         const worksheet = workbook.Sheets[sheetName];
         const json = XLSX.utils.sheet_to_json(worksheet) as any[];
 
-        const formattedProducts = json.map(row => ({
+        const formattedProducts = json.map((row) => ({
           name: String(row["Product Name"]),
           price: String(row["Normal Price"]),
           images: row["Pic (001.jpg)"] ? [String(row["Pic (001.jpg)"])] : [],
-          stock: parseInt(String(row["Unit"])) || 0,
+          stock: Number.parseInt(String(row.Unit)) || 0,
           categoryId: categories?.[0]?.id || null, // Default to first category
           description: "",
-          isEnabled: true
+          isEnabled: true,
         }));
 
         await apiRequest("POST", api.products.batchCreate.path, formattedProducts);
@@ -90,7 +115,12 @@ export default function Products() {
     reader.readAsArrayBuffer(file);
   };
 
-  if (isLoading) return <div className="flex justify-center p-12"><Loader2 className="animate-spin text-primary" /></div>;
+  if (isLoading)
+    return (
+      <div className="flex justify-center p-12">
+        <Loader2 className="animate-spin text-primary" />
+      </div>
+    );
 
   return (
     <div className="space-y-8">
@@ -100,7 +130,7 @@ export default function Products() {
           <p className="text-muted-foreground">Manage your inventory catalog</p>
         </div>
         <div className="flex items-center gap-2">
-          {user?.role === 'admin' && (
+          {user?.role === "admin" && (
             <>
               <Button variant="outline" size="sm" onClick={handleExportTemplate} className="gap-2">
                 <FileDown className="w-4 h-4" /> Template
@@ -119,7 +149,7 @@ export default function Products() {
                   <Upload className="w-4 h-4" /> Batch Upload
                 </Button>
               </div>
-              
+
               <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
                 <DialogTrigger asChild>
                   <Button size="sm" className="gap-2">
@@ -169,7 +199,11 @@ export default function Products() {
                             <FormItem>
                               <FormLabel>Stock</FormLabel>
                               <FormControl>
-                                <Input {...field} type="number" onChange={e => field.onChange(parseInt(e.target.value))} />
+                                <Input
+                                  {...field}
+                                  type="number"
+                                  onChange={(e) => field.onChange(Number.parseInt(e.target.value))}
+                                />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -182,7 +216,10 @@ export default function Products() {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Category</FormLabel>
-                            <Select onValueChange={v => field.onChange(parseInt(v))} value={field.value?.toString()}>
+                            <Select
+                              onValueChange={(v) => field.onChange(Number.parseInt(v))}
+                              value={field.value?.toString()}
+                            >
                               <FormControl>
                                 <SelectTrigger>
                                   <SelectValue placeholder="Select category" />
@@ -190,7 +227,9 @@ export default function Products() {
                               </FormControl>
                               <SelectContent>
                                 {categories?.map((cat: Category) => (
-                                  <SelectItem key={cat.id} value={cat.id.toString()}>{cat.name}</SelectItem>
+                                  <SelectItem key={cat.id} value={cat.id.toString()}>
+                                    {cat.name}
+                                  </SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
@@ -205,14 +244,26 @@ export default function Products() {
                           <FormItem>
                             <FormLabel>Description</FormLabel>
                             <FormControl>
-                              <Textarea {...field} value={field.value || ""} placeholder="Product description..." />
+                              <Textarea
+                                {...field}
+                                value={field.value || ""}
+                                placeholder="Product description..."
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
-                      <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-                        {form.formState.isSubmitting ? <Loader2 className="animate-spin" /> : "Save Product"}
+                      <Button
+                        type="submit"
+                        className="w-full"
+                        disabled={form.formState.isSubmitting}
+                      >
+                        {form.formState.isSubmitting ? (
+                          <Loader2 className="animate-spin" />
+                        ) : (
+                          "Save Product"
+                        )}
                       </Button>
                     </form>
                   </Form>
@@ -225,20 +276,29 @@ export default function Products() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {products?.map((product: Product) => (
-          <div key={product.id} className="group bg-card border border-border/40 rounded-2xl overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+          <div
+            key={product.id}
+            className="group bg-card border border-border/40 rounded-2xl overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+          >
             <div className="aspect-[4/3] bg-secondary/20 relative overflow-hidden">
-              <img 
-                src={Array.isArray(product.images) && product.images[0] ? String(product.images[0]) : "https://placehold.co/600x400/171A1D/D4B16A?text=Product"} 
+              <img
+                src={
+                  Array.isArray(product.images) && product.images[0]
+                    ? String(product.images[0])
+                    : "https://placehold.co/600x400/171A1D/D4B16A?text=Product"
+                }
                 alt={product.name}
                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
               />
               <div className="absolute top-3 right-3">
-                <span className={`px-2 py-1 text-xs font-bold rounded-full ${(product.stock ?? 0) > 0 ? "bg-mint/90 text-teal-950" : "bg-destructive/90 text-white"}`}>
+                <span
+                  className={`px-2 py-1 text-xs font-bold rounded-full ${(product.stock ?? 0) > 0 ? "bg-mint/90 text-teal-950" : "bg-destructive/90 text-white"}`}
+                >
                   {(product.stock ?? 0) > 0 ? "In Stock" : "Out of Stock"}
                 </span>
               </div>
             </div>
-            
+
             <div className="p-5 space-y-3">
               <div>
                 <h3 className="font-semibold text-lg leading-tight truncate">{product.name}</h3>
@@ -246,11 +306,14 @@ export default function Products() {
                   {product.description || "No description available"}
                 </p>
               </div>
-              
+
               <div className="flex items-center justify-between pt-2 border-t border-border/40">
-                <span className="text-lg font-bold text-primary">฿{Number(product.price).toLocaleString()}</span>
+                <span className="text-lg font-bold text-primary">
+                  ฿{Number(product.price).toLocaleString()}
+                </span>
                 <span className="text-xs text-muted-foreground uppercase tracking-wider">
-                  {categories?.find((c: Category) => c.id === product.categoryId)?.name || "Uncategorized"}
+                  {categories?.find((c: Category) => c.id === product.categoryId)?.name ||
+                    "Uncategorized"}
                 </span>
               </div>
             </div>

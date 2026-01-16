@@ -1,16 +1,23 @@
-import { useMemo, useRef, useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { useQuery } from "@tanstack/react-query";
 import { api } from "@shared/routes";
 import type { Product, User } from "@shared/schema";
+import { useQuery } from "@tanstack/react-query";
 import { toJpeg } from "html-to-image";
+import { useMemo, useRef, useState } from "react";
 
 const defaultEmail = "yubkk1991@gmail.com";
 
@@ -47,12 +54,18 @@ export default function Summary() {
   });
 
   const staffOptions = useMemo(
-    () => users?.filter((u) => u.role === "staff" || u.role === "admin" || u.role === "accounting") ?? [],
-    [users]
+    () =>
+      users?.filter((u) => u.role === "staff" || u.role === "admin" || u.role === "accounting") ??
+      [],
+    [users],
   );
 
   if (user?.role !== "admin" && user?.role !== "accounting") {
-    return <div className="p-8 text-center text-muted-foreground">Unauthorized. Admin and Accounting only.</div>;
+    return (
+      <div className="p-8 text-center text-muted-foreground">
+        Unauthorized. Admin and Accounting only.
+      </div>
+    );
   }
 
   const toggleSelection = (id: number, list: number[], setList: (ids: number[]) => void) => {
@@ -65,7 +78,11 @@ export default function Summary() {
 
   const handleCreateReport = () => {
     if (!rangeStart || !rangeEnd) {
-      toast({ title: "เลือกช่วงเวลา", description: "กรุณาเลือกวันที่เริ่มต้นและสิ้นสุด", variant: "destructive" });
+      toast({
+        title: "เลือกช่วงเวลา",
+        description: "กรุณาเลือกวันที่เริ่มต้นและสิ้นสุด",
+        variant: "destructive",
+      });
       return;
     }
     setReportCreated(true);
@@ -91,11 +108,17 @@ export default function Summary() {
 
   const selectedProductLabels = useAllProducts
     ? "All Products"
-    : products?.filter((p) => selectedProducts.includes(p.id)).map((p) => p.name).join(", ") || "-";
+    : products
+        ?.filter((p) => selectedProducts.includes(p.id))
+        .map((p) => p.name)
+        .join(", ") || "-";
 
   const selectedStaffLabels = useAllStaff
     ? "All Staff"
-    : staffOptions.filter((s) => selectedStaff.includes(s.id)).map((s) => s.name).join(", ") || "-";
+    : staffOptions
+        .filter((s) => selectedStaff.includes(s.id))
+        .map((s) => s.name)
+        .join(", ") || "-";
 
   return (
     <div className="space-y-6">
@@ -117,8 +140,14 @@ export default function Summary() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center gap-2">
-                <Checkbox checked={useAllProducts} onCheckedChange={(val) => setUseAllProducts(!!val)} id="all-products" />
-                <label htmlFor="all-products" className="text-sm font-medium">All Products</label>
+                <Checkbox
+                  checked={useAllProducts}
+                  onCheckedChange={(val) => setUseAllProducts(!!val)}
+                  id="all-products"
+                />
+                <label htmlFor="all-products" className="text-sm font-medium">
+                  All Products
+                </label>
               </div>
               {!useAllProducts && (
                 <div className="grid gap-2 md:grid-cols-2">
@@ -126,7 +155,9 @@ export default function Summary() {
                     <label key={product.id} className="flex items-center gap-2 text-sm">
                       <Checkbox
                         checked={selectedProducts.includes(product.id)}
-                        onCheckedChange={() => toggleSelection(product.id, selectedProducts, setSelectedProducts)}
+                        onCheckedChange={() =>
+                          toggleSelection(product.id, selectedProducts, setSelectedProducts)
+                        }
                       />
                       {product.name}
                     </label>
@@ -144,8 +175,14 @@ export default function Summary() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center gap-2">
-                <Checkbox checked={useAllStaff} onCheckedChange={(val) => setUseAllStaff(!!val)} id="all-staff" />
-                <label htmlFor="all-staff" className="text-sm font-medium">All Staff</label>
+                <Checkbox
+                  checked={useAllStaff}
+                  onCheckedChange={(val) => setUseAllStaff(!!val)}
+                  id="all-staff"
+                />
+                <label htmlFor="all-staff" className="text-sm font-medium">
+                  All Staff
+                </label>
               </div>
               {!useAllStaff && (
                 <div className="grid gap-2 md:grid-cols-2">
@@ -153,7 +190,9 @@ export default function Summary() {
                     <label key={staff.id} className="flex items-center gap-2 text-sm">
                       <Checkbox
                         checked={selectedStaff.includes(staff.id)}
-                        onCheckedChange={() => toggleSelection(staff.id, selectedStaff, setSelectedStaff)}
+                        onCheckedChange={() =>
+                          toggleSelection(staff.id, selectedStaff, setSelectedStaff)
+                        }
                       />
                       {staff.name} ({staff.username})
                     </label>
@@ -190,9 +229,14 @@ export default function Summary() {
             <CardTitle className="text-lg">Report Preview</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div ref={reportRef} className="rounded-xl border border-border/50 bg-secondary/10 p-4 space-y-2">
+            <div
+              ref={reportRef}
+              className="rounded-xl border border-border/50 bg-secondary/10 p-4 space-y-2"
+            >
               <p className="text-sm font-semibold">Summary Report</p>
-              <p className="text-xs text-muted-foreground">ช่วงเวลา: {rangeStart} - {rangeEnd}</p>
+              <p className="text-xs text-muted-foreground">
+                ช่วงเวลา: {rangeStart} - {rangeEnd}
+              </p>
               <p className="text-xs text-muted-foreground">Products: {selectedProductLabels}</p>
               <p className="text-xs text-muted-foreground">Staff: {selectedStaffLabels}</p>
               <div className="mt-3 text-xs text-muted-foreground">
@@ -201,7 +245,9 @@ export default function Summary() {
             </div>
 
             <div className="flex flex-wrap gap-3">
-              <Button variant="secondary" onClick={() => handleExport("line")}>Export to Line</Button>
+              <Button variant="secondary" onClick={() => handleExport("line")}>
+                Export to Line
+              </Button>
               <Button onClick={() => setEmailDialogOpen(true)}>Export to Email</Button>
             </div>
           </CardContent>
@@ -216,7 +262,9 @@ export default function Summary() {
           </DialogHeader>
           <Input value={emailValue} onChange={(e) => setEmailValue(e.target.value)} />
           <DialogFooter>
-            <Button variant="secondary" onClick={() => setEmailDialogOpen(false)}>ยกเลิก</Button>
+            <Button variant="secondary" onClick={() => setEmailDialogOpen(false)}>
+              ยกเลิก
+            </Button>
             <Button onClick={() => handleExport("email")}>ส่งอีเมล</Button>
           </DialogFooter>
         </DialogContent>
