@@ -23603,8 +23603,8 @@ var require_safe_buffer2 = __commonJS({
     function SafeBuffer(arg, encodingOrOffset, length) {
       return Buffer2(arg, encodingOrOffset, length);
     }
-    SafeBuffer.prototype = Object.create(Buffer2.prototype);
-    copyProps(Buffer2, SafeBuffer);
+// ../node_modules/cookie/index.js
+  "../node_modules/cookie/index.js"(exports2) {
     SafeBuffer.from = function(arg, encodingOrOffset, length) {
       if (typeof arg === "number") {
         throw new TypeError("Argument must not be a number");
@@ -24687,8 +24687,8 @@ var require_parseurl2 = __commonJS({
       for (var i = 1; i < str.length; i++) {
         switch (str.charCodeAt(i)) {
           case 63:
-            if (search === null) {
-              pathname = str.substring(0, i);
+// ../node_modules/cookie-signature/index.js
+  "../node_modules/cookie-signature/index.js"(exports2) {
               query = str.substring(i + 1);
               search = str.substring(i);
             }
@@ -25499,7 +25499,8 @@ var require_express_session = __commonJS({
     }
     function issecure(req, trustProxy) {
       if (req.connection && req.connection.encrypted) {
-        return true;
+var import_v2 = require("firebase-functions/v2");
+var import_https = require("firebase-functions/v2/https");
       }
       if (trustProxy === false) {
         return false;
@@ -25757,12 +25758,170 @@ var FirestoreStorage = class {
   async getOrder(id) {
     const snap = await this.orders.doc(String(id)).get();
     if (!snap.exists) return void 0;
-    return deserializeDates({
+  async createCategory(insertCategory) {
+    const id = await getNextId("categories");
+    await this.categories.doc(String(id)).set({
+      ...insertCategory,
       id,
-      ...snap.data()
+      createdAt: import_firestore2.Timestamp.now()
     });
+    const created = await this.categories.doc(String(id)).get();
+    return deserializeDates(created.data());
   }
-  async createOrder(insertOrder) {
+  async updateCategory(id, updates) {
+    await this.categories.doc(String(id)).set(
+      {
+        ...updates,
+        updatedAt: import_firestore2.Timestamp.now()
+      },
+      { merge: true }
+    );
+    const updated = await this.categories.doc(String(id)).get();
+    return deserializeDates(updated.data());
+  }
+  async deleteCategory(id) {
+    await this.categories.doc(String(id)).delete();
+  }
+  const isProd = process.env.NODE_ENV === "production";
+    store: storage.sessionStore,
+    cookie: {
+      httpOnly: true,
+      // Secure/SameSite need to loosen in local dev (http) so the cookie sticks
+      secure: isProd,
+      sameSite: isProd ? "none" : "lax",
+      maxAge: 24 * 60 * 60 * 1e3
+      // 1 day
+    }
+        let user = await storage.getUserByUsername(username);
+        const defaultUsers = [
+          { username: "admin", pin: "1111", role: "admin", name: "Admin User" },
+          { username: "staff", pin: "2222", role: "staff", name: "Staff User" },
+          { username: "account", pin: "3333", role: "accounting", name: "Accounting User" },
+          { username: "aaaaa", pin: "1111", role: "staff", name: "User AAAAA" }
+        ];
+        if (!user) {
+          const match = defaultUsers.find((u) => u.username === username && u.pin === pin);
+          if (match) {
+            user = await storage.createUser(match);
+          }
+        }
+// ../node_modules/zod/v3/external.js
+var external_exports = {};
+__export(external_exports, {
+  BRAND: () => BRAND,
+  DIRTY: () => DIRTY,
+  EMPTY_PATH: () => EMPTY_PATH,
+  INVALID: () => INVALID,
+  NEVER: () => NEVER,
+  OK: () => OK,
+  ParseStatus: () => ParseStatus,
+  Schema: () => ZodType,
+  ZodAny: () => ZodAny,
+  ZodArray: () => ZodArray,
+  ZodBigInt: () => ZodBigInt,
+  ZodBoolean: () => ZodBoolean,
+  ZodBranded: () => ZodBranded,
+  ZodCatch: () => ZodCatch,
+  ZodDate: () => ZodDate,
+  ZodDefault: () => ZodDefault,
+  ZodDiscriminatedUnion: () => ZodDiscriminatedUnion,
+  ZodEffects: () => ZodEffects,
+  ZodEnum: () => ZodEnum,
+  ZodError: () => ZodError,
+  ZodFirstPartyTypeKind: () => ZodFirstPartyTypeKind,
+  ZodFunction: () => ZodFunction,
+  ZodIntersection: () => ZodIntersection,
+  ZodIssueCode: () => ZodIssueCode,
+  ZodLazy: () => ZodLazy,
+  ZodLiteral: () => ZodLiteral,
+  ZodMap: () => ZodMap,
+  ZodNaN: () => ZodNaN,
+  ZodNativeEnum: () => ZodNativeEnum,
+  ZodNever: () => ZodNever,
+  ZodNull: () => ZodNull,
+  ZodNullable: () => ZodNullable,
+  ZodNumber: () => ZodNumber,
+  ZodObject: () => ZodObject,
+  ZodOptional: () => ZodOptional,
+  ZodParsedType: () => ZodParsedType,
+  ZodPipeline: () => ZodPipeline,
+  ZodPromise: () => ZodPromise,
+  ZodReadonly: () => ZodReadonly,
+  ZodRecord: () => ZodRecord,
+  ZodSchema: () => ZodType,
+  ZodSet: () => ZodSet,
+  ZodString: () => ZodString,
+  ZodSymbol: () => ZodSymbol,
+  ZodTransformer: () => ZodEffects,
+  ZodTuple: () => ZodTuple,
+  ZodType: () => ZodType,
+  ZodUndefined: () => ZodUndefined,
+  ZodUnion: () => ZodUnion,
+  ZodUnknown: () => ZodUnknown,
+  ZodVoid: () => ZodVoid,
+  addIssueToContext: () => addIssueToContext,
+  any: () => anyType,
+  array: () => arrayType,
+  bigint: () => bigIntType,
+  boolean: () => booleanType,
+  coerce: () => coerce,
+  custom: () => custom,
+  date: () => dateType,
+  datetimeRegex: () => datetimeRegex,
+  defaultErrorMap: () => en_default,
+  discriminatedUnion: () => discriminatedUnionType,
+  effect: () => effectsType,
+  enum: () => enumType,
+  function: () => functionType,
+  getErrorMap: () => getErrorMap,
+  getParsedType: () => getParsedType,
+  instanceof: () => instanceOfType,
+  intersection: () => intersectionType,
+  isAborted: () => isAborted,
+  isAsync: () => isAsync,
+  isDirty: () => isDirty,
+  isValid: () => isValid,
+  late: () => late,
+  lazy: () => lazyType,
+  literal: () => literalType,
+  makeIssue: () => makeIssue,
+  map: () => mapType,
+  nan: () => nanType,
+  nativeEnum: () => nativeEnumType,
+  never: () => neverType,
+  null: () => nullType,
+  nullable: () => nullableType,
+  number: () => numberType,
+  object: () => objectType,
+  objectUtil: () => objectUtil,
+  oboolean: () => oboolean,
+  onumber: () => onumber,
+  optional: () => optionalType,
+  ostring: () => ostring,
+  pipeline: () => pipelineType,
+  preprocess: () => preprocessType,
+  promise: () => promiseType,
+  quotelessJson: () => quotelessJson,
+  record: () => recordType,
+  set: () => setType,
+  setErrorMap: () => setErrorMap,
+  strictObject: () => strictObjectType,
+  string: () => stringType,
+  symbol: () => symbolType,
+  transformer: () => effectsType,
+  tuple: () => tupleType,
+  undefined: () => undefinedType,
+  union: () => unionType,
+  unknown: () => unknownType,
+  util: () => util,
+  void: () => voidType
+});
+
+// ../node_modules/zod/v3/helpers/util.js
+  util2.assertEqual = (_) => {
+  };
+  }
+  util2.isInteger = typeof Number.isInteger === "function" ? (val) => Number.isInteger(val) : (val) => typeof val === "number" && Number.isFinite(val) && Math.floor(val) === val;
     const id = await getNextId("orders");
     const orderNo = `ORD-${Date.now()}-${Math.floor(Math.random() * 1e3)}`;
     await this.orders.doc(String(id)).set({
@@ -25933,7 +26092,9 @@ var util;
   };
 })(util || (util = {}));
 var objectUtil;
-(function(objectUtil2) {
+      return Number.isNaN(data) ? ZodParsedType.nan : ZodParsedType.number;
+
+// ../node_modules/zod/v3/ZodError.js
   objectUtil2.mergeShapes = (first, second) => {
     return {
       ...first,
@@ -26065,8 +26226,11 @@ var ZodError = class _ZodError extends Error {
         } else if (issue.path.length === 0) {
           fieldErrors._errors.push(mapper(issue));
         } else {
-          let curr = fieldErrors;
-          let i = 0;
+        const firstEl = sub.path[0];
+        fieldErrors[firstEl] = fieldErrors[firstEl] || [];
+        fieldErrors[firstEl].push(mapper(sub));
+
+// ../node_modules/zod/v3/locales/en.js
           while (i < issue.path.length) {
             const el = issue.path[i];
             const terminal = i === issue.path.length - 1;
@@ -26142,8 +26306,15 @@ var errorMap = (issue, _ctx) => {
     case ZodIssueCode.invalid_union_discriminator:
       message = `Invalid discriminator value. Expected ${util.joinValues(issue.options)}`;
       break;
-    case ZodIssueCode.invalid_enum_value:
-      message = `Invalid enum value. Expected ${util.joinValues(issue.options)}, received '${issue.received}'`;
+      else if (issue.type === "bigint")
+        message = `Number must be ${issue.exact ? `exactly equal to ` : issue.inclusive ? `greater than or equal to ` : `greater than `}${issue.minimum}`;
+var en_default = errorMap;
+
+// ../node_modules/zod/v3/errors.js
+var overrideErrorMap = en_default;
+
+// ../node_modules/zod/v3/helpers/parseUtil.js
+      overrideMap === en_default ? void 0 : en_default
       break;
     case ZodIssueCode.invalid_arguments:
       message = `Invalid function arguments`;
@@ -26294,25 +26465,15 @@ var ParseStatus = class _ParseStatus {
     return { status: status.value, value: arrayValue };
   }
   static async mergeObjectAsync(status, pairs) {
-    const syncPairs = [];
-    for (const pair of pairs) {
-      const key = await pair.key;
-      const value = await pair.value;
-      syncPairs.push({
-        key,
-        value
-      });
-    }
-    return _ParseStatus.mergeObjectSync(status, syncPairs);
-  }
-  static mergeObjectSync(status, pairs) {
-    const finalObject = {};
-    for (const pair of pairs) {
-      const { key, value } = pair;
-      if (key.status === "aborted")
-        return INVALID;
-      if (value.status === "aborted")
-        return INVALID;
+
+// ../node_modules/zod/v3/helpers/errorUtil.js
+  errorUtil2.toString = (message) => typeof message === "string" ? message : message?.message;
+
+// ../node_modules/zod/v3/types.js
+      if (Array.isArray(this._key)) {
+      return { message: message ?? ctx.defaultError };
+      return { message: message ?? required_error ?? ctx.defaultError };
+    return { message: message ?? invalid_type_error ?? ctx.defaultError };
       if (key.status === "dirty")
         status.dirty();
       if (value.status === "dirty")
@@ -26422,14 +26583,12 @@ var ZodType = class {
   }
   _getOrReturnCtx(input, ctx) {
     return ctx || {
-      common: input.parent.common,
-      data: input.data,
-      parsedType: getParsedType(input.data),
-      schemaErrorMap: this._def.errorMap,
-      path: input.path,
-      parent: input.parent
-    };
-  }
+        async: params?.async ?? false,
+        contextualErrorMap: params?.errorMap
+      path: params?.path || [],
+        if (err?.message?.toLowerCase()?.includes("encountered")) {
+        contextualErrorMap: params?.errorMap,
+      path: params?.path || [],
   _processInputParams(input) {
     return {
       status: new ParseStatus(),
@@ -26678,12 +26837,17 @@ var ZodType = class {
       typeName: ZodFirstPartyTypeKind.ZodCatch
     });
   }
-  describe(description) {
-    const This = this.constructor;
-    return new This({
-      ...this._def,
-      description
-    });
+  let secondsRegexSource = `[0-5]\\d`;
+    secondsRegexSource = `${secondsRegexSource}\\.\\d{${args.precision}}`;
+    secondsRegexSource = `${secondsRegexSource}(\\.\\d+)?`;
+  const secondsQuantifier = args.precision ? "+" : "?";
+  return `([01]\\d|2[0-3]):[0-5]\\d(:${secondsRegexSource})${secondsQuantifier}`;
+    if (!header)
+      return false;
+    if ("typ" in decoded && decoded?.typ !== "JWT")
+      return false;
+    if (!decoded.alg)
+  } catch {
   }
   pipe(target) {
     return ZodPipeline.create(this, target);
@@ -26880,7 +27044,7 @@ var ZodString = class _ZodString extends ZodType {
         if (!nanoidRegex.test(input.data)) {
           ctx = this._getOrReturnCtx(input, ctx);
           addIssueToContext(ctx, {
-            validation: "nanoid",
+        } catch {
             code: ZodIssueCode.invalid_string,
             message: check.message
           });
@@ -27092,16 +27256,15 @@ var ZodString = class _ZodString extends ZodType {
     return this._addCheck({ kind: "email", ...errorUtil.errToObj(message) });
   }
   url(message) {
-    return this._addCheck({ kind: "url", ...errorUtil.errToObj(message) });
+      precision: typeof options?.precision === "undefined" ? null : options?.precision,
+      offset: options?.offset ?? false,
+      local: options?.local ?? false,
+      ...errorUtil.errToObj(options?.message)
+      precision: typeof options?.precision === "undefined" ? null : options?.precision,
+      ...errorUtil.errToObj(options?.message)
   }
-  emoji(message) {
-    return this._addCheck({ kind: "emoji", ...errorUtil.errToObj(message) });
-  }
-  uuid(message) {
-    return this._addCheck({ kind: "uuid", ...errorUtil.errToObj(message) });
-  }
-  nanoid(message) {
-    return this._addCheck({ kind: "nanoid", ...errorUtil.errToObj(message) });
+      position: options?.position,
+      ...errorUtil.errToObj(options?.message)
   }
   cuid(message) {
     return this._addCheck({ kind: "cuid", ...errorUtil.errToObj(message) });
@@ -27274,11 +27437,10 @@ var ZodString = class _ZodString extends ZodType {
     return !!this._def.checks.find((ch) => ch.kind === "cuid");
   }
   get isCUID2() {
-    return !!this._def.checks.find((ch) => ch.kind === "cuid2");
-  }
-  get isULID() {
-    return !!this._def.checks.find((ch) => ch.kind === "ulid");
-  }
+    coerce: params?.coerce ?? false,
+  const valInt = Number.parseInt(val.toFixed(decCount).replace(".", ""));
+  const stepInt = Number.parseInt(step.toFixed(decCount).replace(".", ""));
+  return valInt % stepInt / 10 ** decCount;
   get isIP() {
     return !!this._def.checks.find((ch) => ch.kind === "ip");
   }
@@ -27498,10 +27660,11 @@ var ZodNumber = class _ZodNumber extends ZodType {
     return this._addCheck({
       kind: "finite",
       message: errorUtil.toString(message)
-    });
+    let max = null;
+    let min = null;
   }
-  safe(message) {
-    return this._addCheck({
+    coerce: params?.coerce || false,
+      } catch {
       kind: "min",
       inclusive: true,
       value: Number.MIN_SAFE_INTEGER,
@@ -27688,10 +27851,9 @@ var ZodBigInt = class _ZodBigInt extends ZodType {
       message: errorUtil.toString(message)
     });
   }
-  nonnegative(message) {
-    return this._addCheck({
-      kind: "min",
-      value: BigInt(0),
+    coerce: params?.coerce ?? false,
+    coerce: params?.coerce || false,
+    if (Number.isNaN(input.data.getTime())) {
       inclusive: true,
       message: errorUtil.toString(message)
     });
@@ -27824,7 +27986,7 @@ var ZodDate = class _ZodDate extends ZodType {
       checks: [...this._def.checks, check]
     });
   }
-  min(minDate, message) {
+    coerce: params?.coerce || false,
     return this._addCheck({
       kind: "min",
       value: minDate.getTime(),
@@ -28098,12 +28260,12 @@ ZodArray.create = (schema, params) => {
     typeName: ZodFirstPartyTypeKind.ZodArray,
     ...processCreateParams(params)
   });
-};
-function deepPartialify(schema) {
-  if (schema instanceof ZodObject) {
-    const newShape = {};
-    for (const key in schema.shape) {
-      const fieldSchema = schema.shape[key];
+    this._cached = { shape, keys };
+    return this._cached;
+      } else if (unknownKeys === "strip") {
+      } else {
+          const defaultError = this._def.errorMap?.(issue, ctx).message ?? ctx.defaultError;
+              message: errorUtil.errToObj(message).message ?? defaultError
       newShape[key] = ZodOptional.create(deepPartialify(fieldSchema));
     }
     return new ZodObject({
@@ -28338,15 +28500,15 @@ var ZodObject = class _ZodObject extends ZodType {
   //   }) as any;
   //   return merged;
   // }
-  setKey(key, schema) {
-    return this.augment({ [key]: schema });
+    for (const key of util.objectKeys(mask)) {
+    }
   }
-  // merge<Incoming extends AnyZodObject>(
-  //   merging: Incoming
-  // ): //ZodObject<T & Incoming["_shape"], UnknownKeys, Catchall> = (merging) => {
-  // ZodObject<
-  //   extendShape<T, ReturnType<Incoming["_def"]["shape"]>>,
-  //   Incoming["_def"]["unknownKeys"],
+    for (const key of util.objectKeys(this.shape)) {
+    }
+    for (const key of util.objectKeys(this.shape)) {
+    }
+    for (const key of util.objectKeys(this.shape)) {
+    }
   //   Incoming["_def"]["catchall"]
   // > {
   //   // const mergedShape = objectUtil.mergeShapes(
@@ -29003,18 +29165,8 @@ var ZodSet = class _ZodSet extends ZodType {
   }
   max(maxSize, message) {
     return new _ZodSet({
-      ...this._def,
-      maxSize: { value: maxSize, message: errorUtil.toString(message) }
-    });
-  }
-  size(size, message) {
-    return this.min(size, message).max(size, message);
-  }
-  nonempty(message) {
-    return this.min(1, message);
-  }
-};
-ZodSet.create = (valueType, params) => {
+        errorMaps: [ctx.common.contextualErrorMap, ctx.schemaErrorMap, getErrorMap(), en_default].filter((x) => !!x),
+        errorMaps: [ctx.common.contextualErrorMap, ctx.schemaErrorMap, getErrorMap(), en_default].filter((x) => !!x),
   return new ZodSet({
     valueType,
     minSize: null,
@@ -29148,25 +29300,15 @@ var ZodLazy = class extends ZodType {
     return lazySchema._parse({ data: ctx.data, path: ctx.path, parent: ctx });
   }
 };
-ZodLazy.create = (getter, params) => {
-  return new ZodLazy({
-    getter,
-    typeName: ZodFirstPartyTypeKind.ZodLazy,
-    ...processCreateParams(params)
-  });
-};
-var ZodLiteral = class extends ZodType {
-  _parse(input) {
-    if (input.data !== this._def.value) {
-      const ctx = this._getOrReturnCtx(input);
-      addIssueToContext(ctx, {
-        received: ctx.data,
-        code: ZodIssueCode.invalid_literal,
-        expected: this._def.value
+    if (!this._cache) {
+      this._cache = new Set(this._def.values);
+    if (!this._cache.has(input.data)) {
+    if (!this._cache) {
+      this._cache = new Set(util.getValidEnumValues(this._def.values));
+    if (!this._cache.has(input.data)) {
       });
       return INVALID;
     }
-    return { status: "valid", value: input.data };
   }
   get value() {
     return this._def.value;
@@ -29393,10 +29535,13 @@ var ZodEffects = class extends ZodType {
       const executeRefinement = (acc) => {
         const result = effect.refinement(acc, checkCtx);
         if (ctx.common.async) {
-          return Promise.resolve(result);
+          return INVALID;
         }
-        if (result instanceof Promise) {
-          throw new Error("Async refinement encountered during synchronous parse operation. Use .parseAsync instead.");
+            return INVALID;
+          return Promise.resolve(effect.transform(base.value, checkCtx)).then((result) => ({
+            status: status.value,
+            value: result
+          }));
         }
         return acc;
       };
@@ -29664,10 +29809,8 @@ var ZodPipeline = class _ZodPipeline extends ZodType {
       }
     }
   }
-  static create(a, b) {
-    return new _ZodPipeline({
-      in: a,
-      out: b,
+            const _fatal = params.fatal ?? fatal ?? true;
+        const _fatal = params.fatal ?? fatal ?? true;
       typeName: ZodFirstPartyTypeKind.ZodPipeline
     });
   }
@@ -29777,122 +29920,6 @@ var dateType = ZodDate.create;
 var symbolType = ZodSymbol.create;
 var undefinedType = ZodUndefined.create;
 var nullType = ZodNull.create;
-var anyType = ZodAny.create;
-var unknownType = ZodUnknown.create;
-var neverType = ZodNever.create;
-var voidType = ZodVoid.create;
-var arrayType = ZodArray.create;
-var objectType = ZodObject.create;
-var strictObjectType = ZodObject.strictCreate;
-var unionType = ZodUnion.create;
-var discriminatedUnionType = ZodDiscriminatedUnion.create;
-var intersectionType = ZodIntersection.create;
-var tupleType = ZodTuple.create;
-var recordType = ZodRecord.create;
-var mapType = ZodMap.create;
-var setType = ZodSet.create;
-var functionType = ZodFunction.create;
-var lazyType = ZodLazy.create;
-var literalType = ZodLiteral.create;
-var enumType = ZodEnum.create;
-var nativeEnumType = ZodNativeEnum.create;
-var promiseType = ZodPromise.create;
-var effectsType = ZodEffects.create;
-var optionalType = ZodOptional.create;
-var nullableType = ZodNullable.create;
-var preprocessType = ZodEffects.createWithPreprocess;
-var pipelineType = ZodPipeline.create;
-var ostring = () => stringType().optional();
-var onumber = () => numberType().optional();
-var oboolean = () => booleanType().optional();
-var coerce = {
-  string: ((arg) => ZodString.create({ ...arg, coerce: true })),
-  number: ((arg) => ZodNumber.create({ ...arg, coerce: true })),
-  boolean: ((arg) => ZodBoolean.create({
-    ...arg,
-    coerce: true
-  })),
-  bigint: ((arg) => ZodBigInt.create({ ...arg, coerce: true })),
-  date: ((arg) => ZodDate.create({ ...arg, coerce: true }))
-};
-var NEVER = INVALID;
-var z = /* @__PURE__ */ Object.freeze({
-  __proto__: null,
-  defaultErrorMap: errorMap,
-  setErrorMap,
-  getErrorMap,
-  makeIssue,
-  EMPTY_PATH,
-  addIssueToContext,
-  ParseStatus,
-  INVALID,
-  DIRTY,
-  OK,
-  isAborted,
-  isDirty,
-  isValid,
-  isAsync,
-  get util() {
-    return util;
-  },
-  get objectUtil() {
-    return objectUtil;
-  },
-  ZodParsedType,
-  getParsedType,
-  ZodType,
-  datetimeRegex,
-  ZodString,
-  ZodNumber,
-  ZodBigInt,
-  ZodBoolean,
-  ZodDate,
-  ZodSymbol,
-  ZodUndefined,
-  ZodNull,
-  ZodAny,
-  ZodUnknown,
-  ZodNever,
-  ZodVoid,
-  ZodArray,
-  ZodObject,
-  ZodUnion,
-  ZodDiscriminatedUnion,
-  ZodIntersection,
-  ZodTuple,
-  ZodRecord,
-  ZodMap,
-  ZodSet,
-  ZodFunction,
-  ZodLazy,
-  ZodLiteral,
-  ZodEnum,
-  ZodNativeEnum,
-  ZodPromise,
-  ZodEffects,
-  ZodTransformer: ZodEffects,
-  ZodOptional,
-  ZodNullable,
-  ZodDefault,
-  ZodCatch,
-  ZodNaN,
-  BRAND,
-  ZodBranded,
-  ZodPipeline,
-  ZodReadonly,
-  custom,
-  Schema: ZodType,
-  ZodSchema: ZodType,
-  late,
-  get ZodFirstPartyTypeKind() {
-    return ZodFirstPartyTypeKind;
-  },
-  coerce,
-  any: anyType,
-  array: arrayType,
-  bigint: bigIntType,
-  boolean: booleanType,
-  date: dateType,
   discriminatedUnion: discriminatedUnionType,
   effect: effectsType,
   "enum": enumType,
@@ -32327,11 +32354,11 @@ function pgTableWithSchema(name, columns, extraConfig, schema, baseName = name) 
   table[Table.Symbol.ExtraConfigColumns] = builtColumnsForExtraConfig;
   if (extraConfig) {
     table[PgTable.Symbol.ExtraConfigBuilder] = extraConfig;
-  }
-  return Object.assign(table, {
-    enableRLS: () => {
-      table[PgTable.Symbol.EnableRLS] = true;
-      return table;
+var literalSchema = external_exports.union([external_exports.string(), external_exports.number(), external_exports.boolean(), external_exports.null()]);
+var jsonSchema = external_exports.union([literalSchema, external_exports.record(external_exports.any()), external_exports.array(external_exports.any())]);
+var bufferSchema = external_exports.custom((v) => v instanceof Buffer);
+  const z$1 = factory?.zodInstance ?? external_exports;
+function numberColumnToSchema(column, z, coerce2) {
     }
   });
 }
@@ -32449,14 +32476,14 @@ function numberColumnToSchema(column, z2, coerce2) {
     max = unsigned ? CONSTANTS.INT24_UNSIGNED_MAX : CONSTANTS.INT24_MAX;
     integer2 = isColumnType(column, ["MySqlMediumInt", "SingleStoreMediumInt"]);
   } else if (isColumnType(column, [
-    "PgInteger",
-    "PgSerial",
-    "MySqlInt",
-    "SingleStoreInt"
-  ])) {
-    min = unsigned ? 0 : CONSTANTS.INT32_MIN;
-    max = unsigned ? CONSTANTS.INT32_UNSIGNED_MAX : CONSTANTS.INT32_MAX;
-    integer2 = true;
+  let schema = coerce2 === true || coerce2?.number ? z.coerce.number() : z.number();
+function bigintColumnToSchema(column, z, coerce2) {
+  const schema = coerce2 === true || coerce2?.bigint ? z.coerce.bigint() : z.bigint();
+function stringColumnToSchema(column, z, coerce2) {
+    return z.string().uuid();
+  let schema = coerce2 === true || coerce2?.string ? z.coerce.string() : z.string();
+    const schema = column ? columnToSchema(column, factory) : external_exports.any();
+  return external_exports.object(columnSchemas);
   } else if (isColumnType(column, [
     "PgDoublePrecision",
     "MySqlReal",
@@ -32595,111 +32622,130 @@ var categories = pgTable("categories", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   colorTag: text("color_tag").notNull()
-  // Hex code for UI
+  pin: external_exports.string().length(4, "PIN must be exactly 4 digits").regex(/^\d+$/, "PIN must contain only digits")
 });
-var products = pgTable("products", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  description: text("description"),
-  price: decimal("price").notNull(),
-  // Stored as string in JS, numeric in DB
-  categoryId: integer("category_id").references(() => categories.id),
-  images: jsonb("images").$type().default([]),
-  // Array of image URLs
-  stock: integer("stock").default(0),
-  isEnabled: boolean("is_enabled").default(true),
-  createdAt: timestamp("created_at").defaultNow()
-});
-var promotions = pgTable("promotions", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  productId: integer("product_id").references(() => products.id),
-  withdrawAmount: integer("withdraw_amount").notNull(),
-  isActive: boolean("is_active").default(true),
-  createdAt: timestamp("created_at").defaultNow()
-});
-var orders = pgTable("orders", {
-  id: serial("id").primaryKey(),
-  orderNo: text("order_no").notNull().unique(),
-  // Generated unique string
-  status: text("status", { enum: ["draft", "submitted", "verified", "cancelled"] }).default("draft"),
-  items: jsonb("items").$type().notNull(),
-  total: decimal("total").notNull(),
-  customerInfo: jsonb("customer_info").$type(),
-  attachments: jsonb("attachments").$type().default([]),
-  createdBy: integer("created_by").references(() => users.id),
-  verifiedBy: integer("verified_by").references(() => users.id),
-  verifiedAt: timestamp("verified_at"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow()
-});
-var insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true }).extend({
-  pin: z.string().length(4, "PIN must be exactly 4 digits").regex(/^\d+$/, "PIN must contain only digits")
-});
-var insertCategorySchema = createInsertSchema(categories).omit({ id: true });
-var insertProductSchema = createInsertSchema(products).omit({ id: true, createdAt: true }).extend({
-  price: z.string().min(1, "Price is required").regex(/^\d+(\.\d{1,2})?$/, "Invalid price format"),
-  stock: z.number().min(0),
-  categoryId: z.number().int().positive()
-});
-var insertPromotionSchema = createInsertSchema(promotions).omit({ id: true, createdAt: true });
-var insertOrderSchema = createInsertSchema(orders).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-  verifiedAt: true,
-  verifiedBy: true,
-  orderNo: true
-  // Backend generates this
-});
-
-// ../shared/routes.ts
-var errorSchemas = {
-  validation: z.object({
-    message: z.string(),
-    field: z.string().optional()
-  }),
-  notFound: z.object({
-    message: z.string()
-  }),
-  internal: z.object({
-    message: z.string()
-  }),
-  unauthorized: z.object({
-    message: z.string()
-  })
-};
-var api = {
-  // Auth
-  auth: {
-    login: {
+  price: external_exports.string().min(1, "Price is required").regex(/^\d+(\.\d{1,2})?$/, "Invalid price format"),
+  stock: external_exports.number().min(0),
+  categoryId: external_exports.number().int().positive()
+  validation: external_exports.object({
+    message: external_exports.string(),
+    field: external_exports.string().optional()
+  notFound: external_exports.object({
+    message: external_exports.string()
+  internal: external_exports.object({
+    message: external_exports.string()
+  unauthorized: external_exports.object({
+    message: external_exports.string()
+      input: external_exports.object({ username: external_exports.string(), password: external_exports.string().optional(), pin: external_exports.string().optional() }),
+        200: external_exports.custom(),
+        200: external_exports.object({ status: external_exports.literal("ok") }),
+        503: external_exports.object({ status: external_exports.literal("error"), message: external_exports.string().optional() })
+        200: external_exports.void()
+        200: external_exports.custom(),
+        200: external_exports.array(external_exports.custom())
+        201: external_exports.custom(),
+        200: external_exports.void(),
+        200: external_exports.array(external_exports.custom())
+        200: external_exports.custom(),
+        201: external_exports.custom(),
+        200: external_exports.custom(),
+      input: external_exports.array(insertProductSchema),
+        201: external_exports.array(external_exports.custom()),
+        200: external_exports.array(external_exports.custom())
+      }
+    },
+    create: {
       method: "POST",
-      path: "/api/login",
-      input: z.object({ username: z.string(), password: z.string().optional(), pin: z.string().optional() }),
+      path: "/api/categories",
+      input: insertCategorySchema,
       responses: {
-        200: z.custom(),
-        401: errorSchemas.unauthorized
+        201: external_exports.custom(),
+        400: errorSchemas.validation
       }
     },
-    health: {
-      method: "GET",
-      path: "/api/health",
+    update: {
+      method: "PUT",
+      path: "/api/categories/:id",
+      input: insertCategorySchema.partial(),
       responses: {
-        200: z.object({ status: z.literal("ok") }),
-        503: z.object({ status: z.literal("error"), message: z.string().optional() })
+        200: external_exports.custom(),
+        404: errorSchemas.notFound
       }
     },
-    logout: {
-      method: "POST",
-      path: "/api/logout",
+    delete: {
+      method: "DELETE",
+      path: "/api/categories/:id",
       responses: {
-        200: z.void()
-      }
-    },
-    me: {
-      method: "GET",
-      path: "/api/user",
-      responses: {
+        200: external_exports.void(),
+        404: errorSchemas.notFound
+      input: external_exports.object({
+        status: external_exports.string().optional(),
+        role: external_exports.string().optional()
+        200: external_exports.array(external_exports.custom())
+        200: external_exports.custom(),
+        201: external_exports.custom(),
+      input: insertOrderSchema.partial().extend({ status: external_exports.string().optional() }),
+        200: external_exports.custom(),
+        200: external_exports.array(external_exports.custom())
+        201: external_exports.custom(),
+        200: external_exports.void(),
+    if (!req.isAuthenticated() || req.user.role !== "admin") {
+      return res.status(403).send("Forbidden");
+    }
+      if (e instanceof external_exports.ZodError) res.status(400).json(e.errors);
+    if (!req.isAuthenticated() || req.user.role !== "admin") {
+      return res.status(403).send("Forbidden");
+    }
+      if (e instanceof external_exports.ZodError) res.status(400).json(e.errors);
+  app3.delete(api.products.delete.path, async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== "admin") {
+      return res.status(403).send("Forbidden");
+    }
+    const product = await storage.getProduct(Number(req.params.id));
+    if (!product) return res.status(404).json({ message: "Product not found" });
+    await storage.deleteProduct(Number(req.params.id));
+    res.sendStatus(200);
+  });
+      if (e instanceof external_exports.ZodError) res.status(400).json(e.errors);
+      if (e instanceof external_exports.ZodError) res.status(400).json(e.errors);
+      if (e instanceof external_exports.ZodError) res.status(400).json(e.errors);
+      if (e instanceof external_exports.ZodError) res.status(400).json(e.errors);
+  app3.post(api.categories.create.path, async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== "admin") {
+      return res.status(403).send("Forbidden");
+    }
+    try {
+      const input = api.categories.create.input.parse(req.body);
+      const category = await storage.createCategory(input);
+      res.status(201).json(category);
+    } catch (e) {
+      if (e instanceof external_exports.ZodError) res.status(400).json(e.errors);
+      else throw e;
+    }
+  });
+  app3.put(api.categories.update.path, async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== "admin") {
+      return res.status(403).send("Forbidden");
+    }
+    try {
+      const input = api.categories.update.input.parse(req.body);
+      const category = await storage.updateCategory(Number(req.params.id), input);
+      res.json(category);
+    } catch (e) {
+      if (e instanceof external_exports.ZodError) res.status(400).json(e.errors);
+      else throw e;
+    }
+  });
+  app3.delete(api.categories.delete.path, async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== "admin") {
+      return res.status(403).send("Forbidden");
+    }
+    await storage.deleteCategory(Number(req.params.id));
+    res.sendStatus(200);
+  });
+      if (e instanceof external_exports.ZodError) res.status(400).json(e.errors);
+(0, import_v2.setGlobalOptions)({ region: "asia-southeast1" });
+var api2 = (0, import_https.onRequest)(async (req, res) => {
         200: z.custom(),
         401: errorSchemas.unauthorized
       }
