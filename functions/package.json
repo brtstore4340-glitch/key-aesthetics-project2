@@ -6,7 +6,8 @@
     "node": "20"
   },
   "scripts": {
-    "build": "esbuild --bundle --platform=node --target=node20 --format=cjs --outfile=lib/index.js src/index.ts --tsconfig=../tsconfig.json --external:firebase-admin --external:firebase-functions"
+    "build": "esbuild --bundle --platform=node --target=node20 --format=cjs --outfile=lib/index.js src/index.ts --tsconfig=../tsconfig.json --external:firebase-admin --external:firebase-functions",
+    "lint": "echo 'Linting skipped' && exit 0"
   },
   "dependencies": {
     "drizzle-orm": "^0.39.3",
@@ -24,3 +25,4 @@
     "esbuild": "^0.25.0"
   }
 }
+

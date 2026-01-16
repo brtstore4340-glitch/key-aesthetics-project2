@@ -130,6 +130,14 @@ export const api = {
         404: errorSchemas.notFound,
       },
     },
+    delete: {
+      method: 'DELETE' as const,
+      path: '/api/products/:id',
+      responses: {
+        200: z.void(),
+        404: errorSchemas.notFound,
+      },
+    },
     batchCreate: {
       method: 'POST' as const,
       path: '/api/products/batch',

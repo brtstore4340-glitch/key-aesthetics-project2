@@ -30,11 +30,24 @@ const serviceAccount = (() => {
   return null;
 })();
 
+const projectId =
+  process.env.FIREBASE_PROJECT_ID ||
+  process.env.GOOGLE_CLOUD_PROJECT ||
+  process.env.GCLOUD_PROJECT ||
+  process.env.VITE_FIREBASE_PROJECT_ID;
+
+// Ensure google auth libs see the project id when using ADC
+if (projectId) {
+  process.env.GOOGLE_CLOUD_PROJECT ??= projectId;
+  process.env.GCLOUD_PROJECT ??= projectId;
+}
+
 const app =
   getApps().length > 0
     ? getApps()[0]
     : initializeApp({
         credential: serviceAccount ? cert(serviceAccount) : applicationDefault(),
+        projectId: projectId,
       });
 
 export const firestore = getFirestore(app);
