@@ -9,7 +9,7 @@ import type {
   Product,
   Promotion,
   User,
-} from "@shared/schema";
+} from "../schema";
 import session from "express-session";
 import { type CollectionReference, Timestamp } from "firebase-admin/firestore";
 import { firestore } from "./db";
@@ -57,12 +57,12 @@ function deserializeDates<T extends EntityWithDates>(
 ): T | undefined {
   if (!data) return undefined;
   const converted: Record<string, unknown> = { ...data };
-  for (const key of ["createdAt", "updatedAt", "verifiedAt"] as const) {
+  ["createdAt", "updatedAt", "verifiedAt"].forEach((key) => {
     const value = converted[key];
     if (value && typeof (value as { toDate?: unknown }).toDate === "function") {
       converted[key] = (value as { toDate: () => Date }).toDate();
     }
-  }
+  });
   return converted as T;
 }
 
@@ -73,9 +73,9 @@ async function getNextId(scope: string): Promise<number> {
     const data = snap.data() || {};
     const current = data[scope] ?? 0;
     const next = Number(current) + 1;
-    tx.set(counters, { [scope]: next }, { merge: true }
+    tx.set(counters, { [scope]: next }, { merge: true });
     return next;
-  }
+  });
 }
 
 class FirestoreSessionStore extends session.Store {
@@ -148,7 +148,7 @@ class FirestoreStorage implements IStorage {
     return deserializeDates<User>({
       id,
       ...snap.data(),
-    }
+    });
   }
 
   async getUsers(): Promise<User[]> {
@@ -170,7 +170,7 @@ class FirestoreStorage implements IStorage {
     return deserializeDates<User>({
       id: Number(doc.id),
       ...doc.data(),
-    }
+    });
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
@@ -179,13 +179,9 @@ class FirestoreStorage implements IStorage {
       ...insertUser,
       id,
       createdAt: Timestamp.now(),
-    }
+    });
     const created = await this.users.doc(String(id)).get();
-    const data = created.data();
-if (!data) {
-  throw new Error("User not found");
-}
-return deserializeDates<User>(data);
+    return deserializeDates<User>(created.data())!;
   }
 
   async deleteUser(id: number): Promise<void> {
@@ -211,7 +207,7 @@ return deserializeDates<User>(data);
     return deserializeDates<Product>({
       id,
       ...snap.data(),
-    }
+    });
   }
 
   async createProduct(insertProduct: InsertProduct): Promise<Product> {
@@ -223,12 +219,8 @@ return deserializeDates<User>(data);
       images: insertProduct.images ?? [],
       isEnabled: insertProduct.isEnabled ?? true,
       stock: insertProduct.stock ?? 0,
-    }
-    const product = await this.getProduct(id);
-if (!product) {
-  throw new Error("Product not found");
-}
-return product;
+    });
+    return (await this.getProduct(id))!;
   }
 
   async updateProduct(id: number, updates: Partial<InsertProduct>): Promise<Product> {
@@ -239,11 +231,7 @@ return product;
       },
       { merge: true },
     );
-    const product = await this.getProduct(id);
-if (!product) {
-  throw new Error("Product not found");
-}
-return product;
+    return (await this.getProduct(id))!;
   }
 
   // Orders
@@ -280,7 +268,7 @@ return product;
     return deserializeDates<Order>({
       id,
       ...snap.data(),
-    }
+    });
   }
 
   async createOrder(insertOrder: InsertOrder): Promise<Order> {
@@ -294,12 +282,8 @@ return product;
       updatedAt: Timestamp.now(),
       attachments: insertOrder.attachments ?? [],
       items: insertOrder.items ?? [],
-    }
-    const order = await this.getOrder(id);
-if (!order) {
-  throw new Error("Order not found");
-}
-return order;
+    });
+    return (await this.getOrder(id))!;
   }
 
   async updateOrder(id: number, updates: Partial<InsertOrder>): Promise<Order> {
@@ -310,11 +294,7 @@ return order;
       },
       { merge: true },
     );
-    const order = await this.getOrder(id);
-if (!order) {
-  throw new Error("Order not found");
-}
-return order;
+    return (await this.getOrder(id))!;
   }
 
   // Categories
@@ -336,7 +316,7 @@ return order;
       ...insertCategory,
       id,
       createdAt: Timestamp.now(),
-    }
+    });
     const created = await this.categories.doc(String(id)).get();
     return deserializeDates<Category>(created.data())!;
   }
@@ -376,7 +356,7 @@ return order;
       ...insertPromotion,
       id,
       createdAt: Timestamp.now(),
-    }
+    });
     return (await this.getPromotions()).find((p) => p.id === id)!;
   }
 

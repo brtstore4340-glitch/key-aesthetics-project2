@@ -9,7 +9,7 @@ import type {
   Product,
   Promotion,
   User,
-} from "@shared/schema";
+} from "../schema";
 import session from "express-session";
 import { type CollectionReference, Timestamp } from "firebase-admin/firestore";
 import { firestore } from "./db";
@@ -33,7 +33,7 @@ export interface IStorage {
   getOrdersByUser(userId: number): Promise<Order[]>;
   getOrder(id: number): Promise<Order | undefined>;
   createOrder(order: InsertOrder): Promise<Order>;
-  updateOrder(id: number, order: any): Promise<Order>;
+  updateOrder(id: number, updates: Partial<InsertOrder>): Promise<Order>;
 
   // Categories
   getCategories(): Promise<Category[]>;
@@ -286,7 +286,7 @@ class FirestoreStorage implements IStorage {
     return (await this.getOrder(id))!;
   }
 
-  async updateOrder(id: number, updates: any): Promise<Order> {
+  async updateOrder(id: number, updates: Partial<InsertOrder>): Promise<Order> {
     await this.orders.doc(String(id)).set(
       {
         ...updates,

@@ -1,4 +1,4 @@
-import type { User as DbUser } from "@shared/schema";
+import type { User as DbUser } from "../schema";
 import type { Express } from "express";
 import session from "express-session";
 import passport from "passport";

@@ -1,6 +1,11 @@
-const functions = require("firebase-functions");
+try {
+  module.exports = require("./lib/index.js");
+} catch (err) {
+  const functions = require("firebase-functions");
 
-// Fix: Chain .region() before the trigger definition
-exports.api = functions.region("asia-southeast1").https.onRequest((req, res) => {
-  res.send("Boots-POS Gemini (v1) is running!");
-});
+  exports.api = functions.region("asia-southeast1").https.onRequest((_req, res) => {
+    res
+      .status(500)
+      .send("Functions bundle missing. Run: npm --prefix functions run build");
+  });
+}

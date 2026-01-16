@@ -1,5 +1,5 @@
 import { type Server, createServer } from "node:http";
-import { api } from "@shared/routes";
+import { api } from "../routes";
 import type { Express } from "express";
 import { z } from "zod";
 import { setupAuth } from "./auth";
