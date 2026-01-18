@@ -16,12 +16,10 @@
     }
   ],
   "hosting": {
-    "public": "dist/public",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
+  "public": "dist",
+  "ignore": [ ... ]
+  // "predeploy": [ "npm run build" ]  <-- Removed or commented out
+},
     "rewrites": [
       {
         "source": "/api/**",
@@ -35,6 +33,8 @@
         "destination": "/index.html"
       }
     ],
-    "predeploy": "npm run build"
+    "predeploy": [
+      "node \"C:\\nvm4w\\nodejs\\node_modules\\npm\\bin\\npm-cli.js\" run build"
+    ]
   }
 }

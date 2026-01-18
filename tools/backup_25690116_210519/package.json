@@ -17,7 +17,8 @@
     "audit": "npm audit --audit-level=high",
     "lint": "biome lint .",
     "review": "node tools/review-project.mjs run",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "fix:tailwind-border": "echo TODO: define fix:tailwind-border"
   },
   "dependencies": {
     "@fontsource/dm-sans": "^5.1.0",

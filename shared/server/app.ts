@@ -4,6 +4,15 @@ import express, { type Express, type Request, type Response, type NextFunction }
 import { registerRoutes, seedDatabase } from "./routes";
 import { serveStatic } from "./static";
 
+
+  declare module "http" {
+    interface IncomingMessage {
+      rawBody: unknown;
+    }
+  }
+
+
+
 export interface BuildOptions {
   withStatic?: boolean;
   withVite?: boolean;
@@ -30,12 +39,6 @@ export async function createApp(
 
   const app = express();
   const httpServer = createServer(app);
-
-  declare module "http" {
-    interface IncomingMessage {
-      rawBody: unknown;
-    }
-  }
 
   app.use(
     express.json({
