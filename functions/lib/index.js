@@ -33706,9 +33706,10 @@ var FirestoreSessionStore = class extends import_express_session.default.Store {
     try {
       const maxAge = sess.cookie?.maxAge ?? 24 * 60 * 60 * 1e3;
       const expiresAt = import_firestore2.Timestamp.fromMillis(Date.now() + Number(maxAge));
+      const plainSession = JSON.parse(JSON.stringify(sess));
       await this.collection.doc(sid).set(
         {
-          session: sess,
+          session: plainSession,
           expiresAt
         },
         { merge: true }

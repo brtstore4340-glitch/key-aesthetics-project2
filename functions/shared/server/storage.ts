@@ -104,11 +104,17 @@ class FirestoreSessionStore extends session.Store {
 
   async set(sid: string, sess: session.SessionData, callback?: (err?: any) => void) {
     try {
-      const maxAge = sess.cookie?.maxAge ?? 24 * 60 * 60 * 1000; // default 1 day
+      const maxAge = sess.cookie?.maxAge ?? 24 * 60 * 60 * 1000;
       const expiresAt = Timestamp.fromMillis(Date.now() + Number(maxAge));
+
+      const plainSession: session.SessionData = {
+        ...sess,
+        cookie: sess.cookie ? { ...sess.cookie } : sess.cookie,
+      };
+
       await this.collection.doc(sid).set(
         {
-          session: sess,
+          session: plainSession,
           expiresAt,
         },
         { merge: true },
