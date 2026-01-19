@@ -149,7 +149,7 @@ export default function Promotions() {
                         <FormLabel>Select Product</FormLabel>
                         <Select
                           onValueChange={(val) => field.onChange(Number.parseInt(val))}
-                          value={field.value?.toString() || ""}
+                          value={field.value ? field.value.toString() : ""}
                         >
                           <FormControl>
                             <SelectTrigger>

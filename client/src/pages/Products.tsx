@@ -353,7 +353,7 @@ export default function Products() {
                             <FormLabel>Category</FormLabel>
                             <Select
                               onValueChange={(v) => field.onChange(Number.parseInt(v))}
-                              value={field.value?.toString()}
+                              value={field.value ? field.value.toString() : ""}
                             >
                               <FormControl>
                                 <SelectTrigger>

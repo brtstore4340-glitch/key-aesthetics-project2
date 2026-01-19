@@ -89,22 +89,37 @@ class FirestoreSessionStore extends session.Store {
 
   async get(sid: string, callback: (err?: unknown, session?: session.SessionData | null) => void) {
     try {
+      console.log(`[Session] Getting session ${sid}`);
       const snap = await this.collection.doc(sid).get();
-      if (!snap.exists) return callback(undefined, null);
+      if (!snap.exists) {
+        console.log(`[Session] Session ${sid} not found`);
+        return callback(undefined, null);
+      }
       const data = snap.data();
       const expiresAt = data?.expiresAt as Timestamp | undefined;
       if (expiresAt && expiresAt.toDate().getTime() < Date.now()) {
+        console.log(`[Session] Session ${sid} expired`);
         await snap.ref.delete();
         return callback(undefined, null);
       }
-      return callback(undefined, data?.session as session.SessionData);
+      console.log(`[Session] Session ${sid} found`);
+
+      // Rehydrate dates in session data (especially cookie.expires)
+      const sess = data?.session as session.SessionData;
+      if (sess?.cookie?.expires && typeof sess.cookie.expires === "string") {
+        sess.cookie.expires = new Date(sess.cookie.expires);
+      }
+      
+      return callback(undefined, sess);
     } catch (err) {
+      console.error(`[Session] Error getting session ${sid}:`, err);
       return callback(err);
     }
   }
 
   async set(sid: string, sess: session.SessionData, callback?: (err?: unknown) => void) {
     try {
+      console.log(`[Session] Setting session ${sid}`);
       const maxAge = sess.cookie?.maxAge ?? 24 * 60 * 60 * 1000; // default 1 day
       const expiresAt = Timestamp.fromMillis(Date.now() + Number(maxAge));
 
