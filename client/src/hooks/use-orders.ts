@@ -11,6 +11,7 @@ export function useOrders(status?: string, role?: string) {
 
       const url = `${api.orders.list.path}?${queryParams.toString()}`;
       const res = await fetch(url, { credentials: "include" });
+      if (res.status === 401) return [];
       if (!res.ok) throw new Error("Failed to fetch orders");
       return api.orders.list.responses[200].parse(await res.json());
     },
@@ -23,6 +24,7 @@ export function useOrder(id: number) {
     queryFn: async () => {
       const url = buildUrl(api.orders.get.path, { id });
       const res = await fetch(url, { credentials: "include" });
+      if (res.status === 401) return null;
       if (!res.ok) throw new Error("Failed to fetch order");
       return api.orders.get.responses[200].parse(await res.json());
     },

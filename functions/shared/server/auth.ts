@@ -1,8 +1,8 @@
-import type { User as DbUser } from "../schema";
 import type { Express } from "express";
 import session from "express-session";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
+import type { User as DbUser } from "../schema";
 import { storage } from "./storage";
 
 type AuthUser = Omit<DbUser, "pin">;

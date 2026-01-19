@@ -8,7 +8,12 @@
     "strict": true,
     "skipLibCheck": true,
     "noEmit": true,
-    "types": ["vitest/globals"]
+    "types": ["vitest/globals"],
+    "paths": {
+      "@/*": ["./client/src/*"],
+      "@shared/*": ["./shared/*"],
+      "@assets/*": ["./attached_assets/*"]
+    }
   },
   "include": ["client/src/**/*.ts", "client/src/**/*.tsx", "shared/**/*.ts", "functions/**/*.ts"],
   "exclude": ["node_modules", "dist", "build", "lib", "functions/**"]

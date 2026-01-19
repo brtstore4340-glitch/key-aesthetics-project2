@@ -48,12 +48,12 @@ export default function Dashboard() {
   return (
     <div className="space-y-8">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-display font-bold text-foreground">
+        <div className="space-y-1">
+          <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground tracking-tight">
             Good {new Date().getHours() < 12 ? "Morning" : "Evening"},{" "}
             {user?.name?.split?.(" ")?.[0] ?? "User"}
           </h1>
-          <p className="text-muted-foreground mt-1">Here's what's happening today.</p>
+          <p className="text-sm text-muted-foreground">Here's what's happening today.</p>
         </div>
 
         <Link

@@ -5,7 +5,7 @@ import { useOrders, useUpdateOrder } from "@/hooks/use-orders";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { toJpeg } from "html-to-image";
-import { Download, Loader2 } from "lucide-react";
+import { Download, Loader2, PlusCircle } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { Link } from "wouter";
 
@@ -92,11 +92,20 @@ export default function Orders() {
     <div className="space-y-6">
       <header className="flex flex-col md:flex-row justify-between md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-display font-bold">{pageTitle}</h1>
-          <p className="text-muted-foreground">{pageDesc}</p>
+          <h1 className="text-3xl font-display font-bold tracking-tight">{pageTitle}</h1>
+          <p className="text-sm text-muted-foreground">{pageDesc}</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          {(user?.role === "admin" || user?.role === "staff") && (
+            <Link
+              href="/orders/new"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-semibold shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all"
+            >
+              <PlusCircle className="w-4 h-4" />
+              New Order
+            </Link>
+          )}
           {user?.role === "accounting" && (
             <Button variant="secondary" className="gap-2" onClick={handleExportPickingList}>
               <Download className="w-4 h-4" />

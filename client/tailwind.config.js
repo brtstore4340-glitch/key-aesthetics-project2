@@ -1,20 +1,17 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   darkMode: ["class"],
-  content: [
-    "./index.html",
-    "./src/**/*.{ts,tsx,js,jsx}",
-  ],
+  content: ["./index.html", "./src/**/*.{ts,tsx,js,jsx}"],
   theme: {
     extend: {
       colors: {
-      "card-foreground": "hsl(var(--card-foreground))",
-      "popover-foreground": "hsl(var(--popover-foreground))",
-      "primary-foreground": "hsl(var(--primary-foreground))",
-      "secondary-foreground": "hsl(var(--secondary-foreground))",
-      "muted-foreground": "hsl(var(--muted-foreground))",
-      "accent-foreground": "hsl(var(--accent-foreground))",
-      "destructive-foreground": "hsl(var(--destructive-foreground))",
+        "card-foreground": "hsl(var(--card-foreground))",
+        "popover-foreground": "hsl(var(--popover-foreground))",
+        "primary-foreground": "hsl(var(--primary-foreground))",
+        "secondary-foreground": "hsl(var(--secondary-foreground))",
+        "muted-foreground": "hsl(var(--muted-foreground))",
+        "accent-foreground": "hsl(var(--accent-foreground))",
+        "destructive-foreground": "hsl(var(--destructive-foreground))",
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -65,4 +62,4 @@ module.exports = {
     },
   },
   plugins: [require("tailwindcss-animate")],
-}
+};

@@ -1,3 +1,13 @@
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -23,6 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/use-auth";
 import { useCategories, useProducts } from "@/hooks/use-products";
@@ -31,7 +42,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { api } from "@shared/routes";
 import { type Category, type Product, insertProductSchema } from "@shared/schema";
-import { FileDown, Loader2, Plus, Upload } from "lucide-react";
+import { Edit, FileDown, Loader2, Plus, Power, Trash2, Upload } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import * as XLSX from "xlsx";
@@ -42,6 +53,8 @@ export default function Products() {
   const { toast } = useToast();
   const { user } = useAuth();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const form = useForm({
     resolver: zodResolver(insertProductSchema),
@@ -58,28 +71,103 @@ export default function Products() {
 
   const onSubmit = async (data: any) => {
     try {
-      await apiRequest("POST", api.products.create.path, data);
+      if (editingProduct) {
+        await apiRequest(
+          "PUT",
+          api.products.update.path.replace(":id", editingProduct.id.toString()),
+          data,
+        );
+        toast({ title: "Product updated successfully" });
+      } else {
+        await apiRequest("POST", api.products.create.path, data);
+        toast({ title: "Product added successfully" });
+      }
       queryClient.invalidateQueries({ queryKey: [api.products.list.path] });
-      toast({ title: "Product added successfully" });
       setIsAddModalOpen(false);
+      setEditingProduct(null);
       form.reset();
     } catch (err: any) {
-      toast({ title: "Failed to add product", description: err.message, variant: "destructive" });
+      toast({
+        title: editingProduct ? "Failed to update product" : "Failed to add product",
+        description: err.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleEdit = (product: Product) => {
+    setEditingProduct(product);
+    form.reset({
+      name: product.name,
+      price: product.price.toString(),
+      description: product.description || "",
+      categoryId: product.categoryId || (undefined as unknown as number),
+      images: product.images || [],
+      stock: product.stock || 0,
+      isEnabled: product.isEnabled ?? true,
+    });
+    setIsAddModalOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!deletingId) return;
+    try {
+      await apiRequest("DELETE", api.products.delete.path.replace(":id", deletingId.toString()));
+      queryClient.invalidateQueries({ queryKey: [api.products.list.path] });
+      toast({ title: "Product deleted successfully" });
+    } catch (err: any) {
+      toast({
+        title: "Failed to delete product",
+        description: err.message,
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleToggleActive = async (product: Product) => {
+    try {
+      await apiRequest("PUT", api.products.update.path.replace(":id", product.id.toString()), {
+        isEnabled: !product.isEnabled,
+      });
+      queryClient.invalidateQueries({ queryKey: [api.products.list.path] });
+      toast({
+        title: product.isEnabled ? "Product deactivated" : "Product activated",
+      });
+    } catch (err: any) {
+      toast({
+        title: "Failed to update status",
+        description: err.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleModalOpenChange = (open: boolean) => {
+    setIsAddModalOpen(open);
+    if (!open) {
+      setEditingProduct(null);
+      form.reset({
+        name: "",
+        price: "",
+        description: "",
+        categoryId: undefined as unknown as number,
+        images: [] as string[],
+        stock: 0,
+        isEnabled: true,
+      });
     }
   };
 
   const handleExportTemplate = () => {
-    const ws = XLSX.utils.json_to_sheet([
-      {
-        "Product Name": "Example Product",
-        "Normal Price": "100.00",
-        "Pic (001.jpg)": "image_url_here",
-        Unit: "10",
-      },
-    ]);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Template");
-    XLSX.writeFile(wb, "product_template.xlsx");
+    // Download the static template file
+    const link = document.createElement("a");
+    link.href = "/up_product_template.xlsx";
+    link.download = "up_product_template.xlsx";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -150,7 +238,7 @@ export default function Products() {
                 </Button>
               </div>
 
-              <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
+              <Dialog open={isAddModalOpen} onOpenChange={handleModalOpenChange}>
                 <DialogTrigger asChild>
                   <Button size="sm" className="gap-2">
                     <Plus className="w-4 h-4" /> Add Product
@@ -158,9 +246,11 @@ export default function Products() {
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-[425px]">
                   <DialogHeader>
-                    <DialogTitle>Add New Product</DialogTitle>
+                    <DialogTitle>{editingProduct ? "Edit Product" : "Add New Product"}</DialogTitle>
                     <DialogDescription>
-                      Enter the details of the new product to add it to the inventory.
+                      {editingProduct
+                        ? "Update the product details below."
+                        : "Enter the details of the new product to add it to the inventory."}
                     </DialogDescription>
                   </DialogHeader>
                   <Form {...form}>
@@ -316,10 +406,55 @@ export default function Products() {
                     "Uncategorized"}
                 </span>
               </div>
+
+              {user?.role === "admin" && (
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-border/40">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleToggleActive(product)}
+                    className={product.isEnabled ? "text-green-600" : "text-muted-foreground"}
+                    title={product.isEnabled ? "Deactivate" : "Activate"}
+                  >
+                    <Power className="w-4 h-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={() => handleEdit(product)}>
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-destructive hover:text-destructive"
+                    onClick={() => setDeletingId(product.id)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         ))}
       </div>
+
+      <AlertDialog open={!!deletingId} onOpenChange={(open) => !open && setDeletingId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the product.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

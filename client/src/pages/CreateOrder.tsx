@@ -14,6 +14,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { useCreateOrder } from "@/hooks/use-orders";
 import { useProducts } from "@/hooks/use-products";
 import { useToast } from "@/hooks/use-toast";
+import { promotions } from "@/lib/constants";
 import type { Product } from "@shared/schema";
 import {
   ArrowRight,
@@ -27,6 +28,8 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
+
+// const promotions = ["ไม่มีโปรโมชั่น", "ซื้อ 3 แถม 3"]; // Moved to @/lib/constants
 
 interface CartItem {
   productId: number;
@@ -51,13 +54,9 @@ export default function CreateOrder() {
   });
   const [offeredPrice, setOfferedPrice] = useState("");
   const [discountInput, setDiscountInput] = useState("0");
-  const [totalInput, setTotalInput] = useState("0");
-  const [lastEdited, setLastEdited] = useState<"discount" | "total">("discount");
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [idCardFile, setIdCardFile] = useState<File | null>(null);
   const [paymentFile, setPaymentFile] = useState<File | null>(null);
-
-  const promotions = ["ไม่มีโปรโมชั่น", "ลด 5%", "ลด 10%", "แถมสินค้า"];
 
   const filteredProducts = products?.filter((p) => {
     const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
@@ -92,31 +91,42 @@ export default function CreateOrder() {
 
   const updatePromotion = (productId: number, promotion: string) => {
     setCart((prev) =>
-      prev.map((item) => (item.productId === productId ? { ...item, promotion } : item)),
+      prev.map((item) =>
+        item.productId === productId
+          ? {
+              ...item,
+              promotion,
+            }
+          : item,
+      ),
     );
   };
 
-  const subTotal = cart.reduce((sum, item) => sum + Number(item.product.price) * item.quantity, 0);
-  const isRequiredInfoComplete =
-    customerInfo.doctorName.trim().length > 0 && customerInfo.address.trim().length > 0;
-  const canSubmit = cart.length > 0 && isRequiredInfoComplete && !isPending;
+  const calculateFreeQuantity = (item: CartItem) => {
+    if (item.promotion === "ซื้อ 3 แถม 3") {
+      return Math.floor(item.quantity / 3) * 3;
+    }
+    return 0;
+  };
+
+  const subTotal = cart.reduce((sum, item) => {
+    const unitPrice = Number(item.product.price);
+    const paidQuantity = item.quantity;
+    return sum + unitPrice * paidQuantity;
+  }, 0);
 
   const parseAmount = (value: string) => {
     const cleaned = value.replace(/[^0-9.]/g, "");
     return Number.parseFloat(cleaned || "0");
   };
 
-  useEffect(() => {
-    if (lastEdited === "total") {
-      const currentTotal = parseAmount(totalInput);
-      const nextDiscount = Math.max(0, subTotal - currentTotal);
-      setDiscountInput(nextDiscount.toFixed(2));
-    } else {
-      const currentDiscount = parseAmount(discountInput);
-      const nextTotal = Math.max(0, subTotal - currentDiscount);
-      setTotalInput(nextTotal.toFixed(2));
-    }
-  }, [subTotal]);
+  const discount = parseAmount(discountInput);
+  const taxableBase = Math.max(0, subTotal - discount);
+  const vatAmount = taxableBase * 0.07;
+  const grandTotal = taxableBase + vatAmount;
+  const isRequiredInfoComplete =
+    customerInfo.doctorName.trim().length > 0 && customerInfo.address.trim().length > 0;
+  const canSubmit = cart.length > 0 && isRequiredInfoComplete && !isPending;
 
   const idCardPreview = useMemo(
     () => (idCardFile ? URL.createObjectURL(idCardFile) : ""),
@@ -135,19 +145,7 @@ export default function CreateOrder() {
   }, [idCardPreview, paymentPreview]);
 
   const handleDiscountChange = (value: string) => {
-    setLastEdited("discount");
     setDiscountInput(value);
-    const discountValue = parseAmount(value);
-    const nextTotal = Math.max(0, subTotal - discountValue);
-    setTotalInput(nextTotal.toFixed(2));
-  };
-
-  const handleTotalChange = (value: string) => {
-    setLastEdited("total");
-    setTotalInput(value);
-    const totalValue = parseAmount(value);
-    const nextDiscount = Math.max(0, subTotal - totalValue);
-    setDiscountInput(nextDiscount.toFixed(2));
   };
 
   const buildOrderPayload = async (status: "draft" | "submitted") => {
@@ -168,14 +166,18 @@ export default function CreateOrder() {
     }
 
     return {
-      items: cart.map((item) => ({
-        productId: item.productId,
-        name: item.product.name,
-        quantity: item.quantity,
-        price: Number(item.product.price),
-        promotion: item.promotion,
-      })),
-      total: parseAmount(totalInput || subTotal.toFixed(2)).toString(),
+      items: cart.map((item) => {
+        const unitPrice = Number(item.product.price);
+        const paidQuantity = item.quantity;
+        const freeQuantity = calculateFreeQuantity(item);
+        return {
+          productId: item.productId,
+          name: item.product.name,
+          quantity: paidQuantity + freeQuantity,
+          price: unitPrice,
+        };
+      }),
+      total: grandTotal.toFixed(2),
       status,
       customerInfo: {
         ...customerInfo,
@@ -220,7 +222,6 @@ export default function CreateOrder() {
       toast({ title: "Checkout สำเร็จ", description: "บันทึกคำสั่งซื้อเรียบร้อยแล้ว" });
       setCart([]);
       setDiscountInput("0");
-      setTotalInput("0");
       setIdCardFile(null);
       setPaymentFile(null);
       setIsCheckoutOpen(false);
@@ -328,14 +329,16 @@ export default function CreateOrder() {
             </div>
 
             <div className="space-y-4 border-t border-border/50 pt-4">
-              <p className="text-xs text-muted-foreground">Total = Sub Total - Discount</p>
+              <p className="text-xs text-muted-foreground">ระบบคำนวณ VAT 7% ให้อัตโนมัติ</p>
               <div className="space-y-3">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Sub Total</span>
-                  <span className="font-semibold">฿{subTotal.toLocaleString()}</span>
+                  <span className="text-muted-foreground">ค่าสินค้า (Subtotal)</span>
+                  <span className="font-semibold">
+                    ฿{subTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                  </span>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs text-muted-foreground">Discount</label>
+                  <label className="text-xs text-muted-foreground">ส่วนลด (ถ้ามี)</label>
                   <Input
                     value={discountInput}
                     onChange={(e) => handleDiscountChange(e.target.value)}
@@ -343,14 +346,17 @@ export default function CreateOrder() {
                     className="h-10"
                   />
                 </div>
-                <div className="space-y-1">
-                  <label className="text-xs text-muted-foreground">Total</label>
-                  <Input
-                    value={totalInput}
-                    onChange={(e) => handleTotalChange(e.target.value)}
-                    inputMode="decimal"
-                    className="h-10"
-                  />
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">ภาษีมูลค่าเพิ่ม (VAT 7%)</span>
+                  <span className="font-semibold">
+                    ฿{vatAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-medium">ยอดรวมสุทธิ (Grand Total)</span>
+                  <span className="text-lg font-bold text-primary">
+                    ฿{grandTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                  </span>
                 </div>
               </div>
 
@@ -388,7 +394,7 @@ export default function CreateOrder() {
             </div>
             <div className="space-y-2">
               <label htmlFor="doctorId" className="text-sm font-medium">
-                เลขบัตรประชาชน (ตัวเลขเท่านั้น)
+                เลข ว. แพทย์
               </label>
               <Input
                 className="bg-secondary/20 border-border/40 focus:ring-primary/20 h-11"
@@ -396,7 +402,7 @@ export default function CreateOrder() {
                 id="doctorId"
                 inputMode="numeric"
                 pattern="[0-9]*"
-                placeholder="1234567890123"
+                placeholder="เลข ว. แพทย์"
                 value={customerInfo.doctorId}
                 onChange={(e) => {
                   const digitsOnly = e.target.value.replace(/\D/g, "");
@@ -589,7 +595,7 @@ export default function CreateOrder() {
             <div className="space-y-2">
               <label className="text-sm font-medium flex items-center gap-2">
                 <ImagePlus className="w-4 h-4 text-primary" />
-                รูปบัตรประจำตัวประชาชน
+                รูปบัตรประชาชน
               </label>
               <Input
                 type="file"
@@ -608,7 +614,7 @@ export default function CreateOrder() {
             <div className="space-y-2">
               <label className="text-sm font-medium flex items-center gap-2">
                 <CreditCard className="w-4 h-4 text-primary" />
-                รูปสลิปโอนเงินหรือสลิปบัตรเครดิต
+                รูปสลิปการโอนเงิน
               </label>
               <Input
                 type="file"

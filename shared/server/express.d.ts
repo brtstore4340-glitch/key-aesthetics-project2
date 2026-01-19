@@ -1,18 +1,11 @@
-/**
- * Express Request typing augmentation.
- * Keeps backend auth-related properties typed without sprinkling `any`.
- */
-export {};
+import type { User as AppUser } from "../schema";
 
 declare global {
   namespace Express {
-    interface User {
-      // Extend this shape to match your auth user payload if needed.
-      [key: string]: unknown;
-    }
+    interface User extends AppUser {}
 
     interface Request {
-      isAuthenticated?: () => boolean;
+      isAuthenticated(): boolean;
       user?: User;
     }
   }

@@ -81,8 +81,9 @@ export default function Login() {
           </div>
           <h1 className="text-2xl font-display font-bold text-foreground">Welcome Back</h1>
           <p className="text-muted-foreground mt-2">Enter your username and 4-digit PIN</p>
-          <p className="text-xs text-muted-foreground mt-2 font-mono">Version 1.0</p>
+          <p className="text-xs text-muted-foreground mt-2 font-mono">Version 2.0</p>
           <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground mt-2">
+            <span className="font-medium">สถานะระบบ:</span>
             <span
               className={`h-2.5 w-2.5 rounded-full ${
                 health === "ok"
@@ -94,10 +95,10 @@ export default function Login() {
             />
             <span>
               {health === "ok"
-                ? "Firebase connected"
+                ? "พร้อมใช้งาน"
                 : health === "checking"
-                  ? "Checking Firebase..."
-                  : "Firebase unreachable"}
+                  ? "กำลังตรวจสอบ..."
+                  : "เชื่อมต่อไม่ได้"}
             </span>
           </div>
         </div>

@@ -1,6 +1,6 @@
 {
   "name": "rest-express",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
   "license": "MIT",
@@ -8,8 +8,6 @@
     "node": ">=20"
   },
   "dependencies": {
-    "@fontsource/dm-sans": "^5.1.0",
-    "@fontsource/outfit": "^5.1.0",
     "@hookform/resolvers": "^3.10.0",
     "@jridgewell/trace-mapping": "^0.3.25",
     "@radix-ui/react-accordion": "^1.2.4",
@@ -106,7 +104,7 @@
   "optionalDependencies": {
     "bufferutil": "^4.0.8"
   },
-  "scripts":{
+  "scripts": {
     "audit": "npm audit --audit-level=high",
     "build": "tsx script/build.ts",
     "check": "biome check .",

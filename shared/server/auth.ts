@@ -1,8 +1,8 @@
-import type { User as DbUser } from "../schema";
 import type { Express } from "express";
 import session from "express-session";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
+import type { User as DbUser, InsertUser } from "../schema";
 import { storage } from "./storage";
 
 type AuthUser = Omit<DbUser, "pin">;
@@ -23,8 +23,8 @@ export function setupAuth(app: Express) {
     cookie: {
       httpOnly: true,
       // Secure/SameSite need to loosen in local dev (http) so the cookie sticks
-      secure: isProd,
-      sameSite: isProd ? "none" : "lax",
+      secure: process.env.NODE_ENV === "production" && process.env.HTTPS === "true",
+      sameSite: "lax",
       maxAge: 24 * 60 * 60 * 1000, // 1 day
     },
   };
@@ -46,7 +46,7 @@ export function setupAuth(app: Express) {
         let user = await storage.getUserByUsername(username);
 
         // Auto-create default accounts if they are missing but correct PIN is provided
-        const defaultUsers = [
+        const defaultUsers: InsertUser[] = [
           { username: "admin", pin: "1111", role: "admin", name: "Admin User" },
           { username: "staff", pin: "2222", role: "staff", name: "Staff User" },
           { username: "account", pin: "3333", role: "accounting", name: "Accounting User" },

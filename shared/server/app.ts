@@ -4,14 +4,11 @@ import express, { type Express, type Request, type Response, type NextFunction }
 import { registerRoutes, seedDatabase } from "./routes";
 import { serveStatic } from "./static";
 
-
-  declare module "http" {
-    interface IncomingMessage {
-      rawBody: unknown;
-    }
+declare module "http" {
+  interface IncomingMessage {
+    rawBody: unknown;
   }
-
-
+}
 
 export interface BuildOptions {
   withStatic?: boolean;

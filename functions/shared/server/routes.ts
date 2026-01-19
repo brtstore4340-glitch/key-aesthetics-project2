@@ -1,7 +1,7 @@
 import { type Server, createServer } from "node:http";
-import { api } from "../routes";
 import type { Express } from "express";
 import { z } from "zod";
+import { api } from "../routes";
 import { setupAuth } from "./auth";
 import { firestore } from "./db";
 import { storage } from "./storage";

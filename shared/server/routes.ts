@@ -1,7 +1,8 @@
 import { type Server, createServer } from "node:http";
-import { api } from "../routes";
 import type { Express } from "express";
 import { z } from "zod";
+import { api } from "../routes";
+import type { InsertUser } from "../schema";
 import { setupAuth } from "./auth";
 import { firestore } from "./db";
 import { storage } from "./storage";
@@ -35,7 +36,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   app.post(api.products.create.path, async (req, res) => {
-    if (!req.isAuthenticated() || (req.user as any).role !== "admin") {
+    if (!req.isAuthenticated() || req.user?.role !== "admin") {
       return res.status(403).send("Forbidden");
     }
     try {
@@ -49,7 +50,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   app.put(api.products.update.path, async (req, res) => {
-    if (!req.isAuthenticated() || (req.user as any).role !== "admin") {
+    if (!req.isAuthenticated() || req.user?.role !== "admin") {
       return res.status(403).send("Forbidden");
     }
     try {
@@ -63,7 +64,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   app.delete(api.products.delete.path, async (req, res) => {
-    if (!req.isAuthenticated() || (req.user as any).role !== "admin") {
+    if (!req.isAuthenticated() || req.user?.role !== "admin") {
       return res.status(403).send("Forbidden");
     }
     const product = await storage.getProduct(Number(req.params.id));
@@ -296,7 +297,9 @@ export async function seedDatabase() {
     }
 
     // Ensure demo users exist even after initial seed
-    const demoUsers = [{ username: "aaaaa", pin: "1111", role: "staff", name: "User AAAAA" }];
+    const demoUsers: InsertUser[] = [
+      { username: "aaaaa", pin: "1111", role: "staff", name: "User AAAAA" },
+    ];
 
     for (const user of demoUsers) {
       const existing = await storage.getUserByUsername(user.username);

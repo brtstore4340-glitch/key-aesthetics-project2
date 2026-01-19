@@ -1,3 +1,5 @@
+import session from "express-session";
+import { type CollectionReference, Timestamp } from "firebase-admin/firestore";
 import type {
   Category,
   InsertCategory,
@@ -10,8 +12,6 @@ import type {
   Promotion,
   User,
 } from "../schema";
-import session from "express-session";
-import { type CollectionReference, Timestamp } from "firebase-admin/firestore";
 import { firestore } from "./db";
 
 export interface IStorage {
@@ -27,6 +27,7 @@ export interface IStorage {
   getProduct(id: number): Promise<Product | undefined>;
   createProduct(product: InsertProduct): Promise<Product>;
   updateProduct(id: number, product: Partial<InsertProduct>): Promise<Product>;
+  deleteProduct(id: number): Promise<void>;
 
   // Orders
   getOrders(): Promise<Order[]>; // Can add filtering later
@@ -235,6 +236,10 @@ class FirestoreStorage implements IStorage {
       { merge: true },
     );
     return (await this.getProduct(id))!;
+  }
+
+  async deleteProduct(id: number): Promise<void> {
+    await this.products.doc(String(id)).delete();
   }
 
   // Orders

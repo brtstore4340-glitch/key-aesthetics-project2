@@ -1,3 +1,5 @@
+import session from "express-session";
+import { type CollectionReference, Timestamp } from "firebase-admin/firestore";
 import type {
   Category,
   InsertCategory,
@@ -10,8 +12,6 @@ import type {
   Promotion,
   User,
 } from "../schema";
-import session from "express-session";
-import { type CollectionReference, Timestamp } from "firebase-admin/firestore";
 import { firestore } from "./db";
 
 export interface IStorage {
