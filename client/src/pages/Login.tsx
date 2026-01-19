@@ -56,7 +56,7 @@ export default function Login() {
   const handleLogin = async (uname: string, upin: string) => {
     try {
       await login({ username: uname, pin: upin });
-      toast({ title: "Welcome back!", description: "Successfully logged in." });
+      // toast({ title: "Welcome back!", description: "Successfully logged in." });
     } catch (err: any) {
       toast({
         title: "Login failed",
@@ -70,18 +70,17 @@ export default function Login() {
   const numpadButtons = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "back"];
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-background p-4 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-slate-50 via-slate-50 to-slate-100 px-4 relative overflow-hidden">
       <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] bg-primary/5 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] bg-mint/5 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="w-full max-w-md bg-card border border-border/50 p-8 rounded-3xl shadow-2xl relative z-10">
-        <div className="text-center mb-8">
+      <div className="w-full max-w-md bg-white/90 backdrop-blur-sm rounded-2xl border border-slate-100 shadow-lg p-6 md:p-7 space-y-6 relative z-10">
+        <div className="space-y-1 text-center">
           <div className="w-16 h-16 mx-auto bg-gradient-to-tr from-primary to-amber-300 rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20 mb-6 transform rotate-3">
             <span className="text-3xl font-bold text-primary-foreground font-display">S</span>
           </div>
-          <h1 className="text-2xl font-display font-bold text-foreground">Welcome Back</h1>
-          <p className="text-muted-foreground mt-2">Enter your username and 4-digit PIN</p>
-          <p className="text-xs text-muted-foreground mt-2 font-mono">Version 2.0</p>
+          <h1 className="text-xl font-semibold text-slate-900 tracking-tight">เข้าสู่ระบบ</h1>
+          <p className="text-sm text-slate-500">ใช้รหัสพนักงานและ PIN 4 หลัก</p>
           <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground mt-2">
             <span className="font-medium">สถานะระบบ:</span>
             <span
@@ -110,7 +109,7 @@ export default function Login() {
               name="username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full max-w-[260px] px-4 py-3 rounded-xl bg-secondary/30 border border-border/50 text-center text-lg font-medium focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none appearance-none"
+              className="w-full max-w-[260px] px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-center text-lg font-medium focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none appearance-none text-slate-700"
             >
               <option value="" disabled>
                 Select username
@@ -129,7 +128,7 @@ export default function Login() {
                 key={i}
                 animate={{ scale: pin.length > i ? [1, 1.2, 1] : 1 }}
                 className={`w-4 h-4 rounded-full border-2 transition-colors duration-200 ${
-                  pin.length > i ? "bg-primary border-primary" : "border-muted-foreground/30"
+                  pin.length > i ? "bg-primary border-primary" : "border-slate-300"
                 }`}
               />
             ))}
@@ -143,7 +142,7 @@ export default function Login() {
                   <button
                     key={i}
                     onClick={handleBackspace}
-                    className="aspect-square rounded-full flex items-center justify-center text-muted-foreground hover:bg-secondary/50 active:bg-secondary transition-colors"
+                    className="aspect-square rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 active:bg-slate-200 transition-colors"
                   >
                     <Delete className="w-6 h-6" />
                   </button>
@@ -154,7 +153,7 @@ export default function Login() {
                   key={i}
                   onClick={() => handleNumpadClick(btn)}
                   disabled={isLoggingIn || !username}
-                  className="aspect-square rounded-full bg-secondary/30 text-2xl font-semibold hover:bg-primary/20 active:bg-primary/30 transition-all active:scale-95 disabled:opacity-50 disabled:active:scale-100"
+                  className="aspect-square rounded-full bg-slate-50 text-slate-700 text-2xl font-semibold hover:bg-primary/10 hover:text-primary active:bg-primary/20 transition-all active:scale-95 disabled:opacity-50 disabled:active:scale-100 shadow-sm border border-slate-100"
                 >
                   {btn}
                 </button>

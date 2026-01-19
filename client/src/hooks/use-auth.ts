@@ -15,8 +15,13 @@ export function useAuth() {
     queryFn: async () => {
       const res = await fetch(api.auth.me.path, { credentials: "include" });
       if (res.status === 401) return null;
-      if (!res.ok) throw new Error("Failed to fetch user");
-      return api.auth.me.responses[200].parse(await res.json());
+      if (res.ok) {
+        const data = await res.json();
+        // If server returns null (200 OK but null body), it means not authenticated
+        if (data === null) return null;
+        return api.auth.me.responses[200].parse(data);
+      }
+      throw new Error("Failed to fetch user");
     },
     retry: false,
     staleTime: Number.POSITIVE_INFINITY,

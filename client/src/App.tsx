@@ -1,4 +1,5 @@
 import { Layout } from "@/components/Layout";
+import { InactivityHandler } from "@/components/InactivityHandler";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/use-auth";
@@ -80,6 +81,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
+        <InactivityHandler />
         <Toaster />
         <Router />
       </TooltipProvider>

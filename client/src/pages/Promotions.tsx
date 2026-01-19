@@ -25,6 +25,7 @@ import { api, buildUrl } from "@shared/routes";
 import { type Product, type Promotion, insertPromotionSchema } from "@shared/schema";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Gift, Loader2, Plus, Tag, Trash2 } from "lucide-react";
+import { useMemo } from "react";
 import { useForm } from "react-hook-form";
 
 export default function Promotions() {
@@ -34,11 +35,19 @@ export default function Promotions() {
   const { data: promotions, isLoading: isLoadingPromos } = useQuery<Promotion[]>({
     queryKey: [api.promotions.list.path],
     enabled: user?.role === "admin",
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
   const { data: products } = useQuery<Product[]>({
     queryKey: [api.products.list.path],
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
+
+  const productMap = useMemo(() => {
+    const map = new Map<number, Product>();
+    products?.forEach((p) => map.set(p.id, p));
+    return map;
+  }, [products]);
 
   const form = useForm({
     resolver: zodResolver(insertPromotionSchema),
@@ -218,7 +227,7 @@ export default function Promotions() {
                       <h3 className="font-bold truncate">{promo.name}</h3>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      {products?.find((p) => p.id === promo.productId)?.name || "Unknown Product"} •{" "}
+                      {productMap.get(promo.productId)?.name || "Unknown Product"} •{" "}
                       {promo.withdrawAmount} Units
                     </p>
                   </div>

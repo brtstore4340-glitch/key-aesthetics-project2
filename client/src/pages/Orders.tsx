@@ -16,6 +16,7 @@ export default function Orders() {
   const { mutateAsync: updateOrder } = useUpdateOrder();
   const { toast } = useToast();
   const pickingRef = useRef<HTMLDivElement | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   if (isLoading) {
     return (
@@ -72,20 +73,32 @@ export default function Orders() {
       });
       return;
     }
-    if (!pickingRef.current) return;
-    try {
-      const dataUrl = await toJpeg(pickingRef.current, { quality: 0.95 });
-      const link = document.createElement("a");
-      link.href = dataUrl;
-      link.download = `picking-list-${Date.now()}.jpeg`;
-      link.click();
 
-      const toUpdate = sortedOrders.filter((order) => order.status === "submitted");
-      await Promise.all(toUpdate.map((order) => updateOrder({ id: order.id, status: "verified" })));
-      toast({ title: "Export สำเร็จ", description: "สถานะอัปเดตเป็นกำลังจัดแล้ว" });
-    } catch (err: any) {
-      toast({ title: "Export failed", description: err.message, variant: "destructive" });
-    }
+    setIsExporting(true);
+    
+    // Wait for render
+    setTimeout(async () => {
+      if (!pickingRef.current) {
+        setIsExporting(false);
+        return;
+      }
+      
+      try {
+        const dataUrl = await toJpeg(pickingRef.current, { quality: 0.95 });
+        const link = document.createElement("a");
+        link.href = dataUrl;
+        link.download = `picking-list-${Date.now()}.jpeg`;
+        link.click();
+
+        const toUpdate = sortedOrders.filter((order) => order.status === "submitted");
+        await Promise.all(toUpdate.map((order) => updateOrder({ id: order.id, status: "verified" })));
+        toast({ title: "Export สำเร็จ", description: "สถานะอัปเดตเป็นกำลังจัดแล้ว" });
+      } catch (err: any) {
+        toast({ title: "Export failed", description: err.message, variant: "destructive" });
+      } finally {
+        setIsExporting(false);
+      }
+    }, 500);
   };
 
   return (
@@ -107,9 +120,9 @@ export default function Orders() {
             </Link>
           )}
           {user?.role === "accounting" && (
-            <Button variant="secondary" className="gap-2" onClick={handleExportPickingList}>
-              <Download className="w-4 h-4" />
-              Export Picking List
+            <Button variant="secondary" className="gap-2" onClick={handleExportPickingList} disabled={isExporting}>
+              {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+              {isExporting ? "Generating..." : "Export Picking List"}
             </Button>
           )}
           <div className="flex items-center gap-2 bg-card border border-border p-1 rounded-xl">
@@ -203,7 +216,7 @@ export default function Orders() {
         </div>
       </div>
 
-      {user?.role === "accounting" && (
+      {user?.role === "accounting" && isExporting && (
         <div className="absolute -left-[10000px] -top-[10000px]">
           <div ref={pickingRef} className="w-[900px] bg-white text-black p-6 space-y-4">
             <h2 className="text-xl font-bold">Picking List</h2>

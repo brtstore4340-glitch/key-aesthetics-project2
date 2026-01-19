@@ -33,6 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/use-auth";
@@ -55,6 +56,8 @@ export default function Products() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [isMultiDeleteOpen, setIsMultiDeleteOpen] = useState(false);
 
   const form = useForm({
     resolver: zodResolver(insertProductSchema),
@@ -99,7 +102,7 @@ export default function Products() {
     setEditingProduct(product);
     form.reset({
       name: product.name,
-      price: product.price.toString(),
+      price: String(product.price || ""),
       description: product.description || "",
       categoryId: product.categoryId || (undefined as unknown as number),
       images: product.images || [],
@@ -124,6 +127,33 @@ export default function Products() {
     } finally {
       setDeletingId(null);
     }
+  };
+
+  const handleDeleteMultiple = async () => {
+    try {
+      await Promise.all(
+        selectedIds.map((id) =>
+          apiRequest("DELETE", api.products.delete.path.replace(":id", id.toString()))
+        )
+      );
+      queryClient.invalidateQueries({ queryKey: [api.products.list.path] });
+      toast({ title: `Successfully deleted ${selectedIds.length} products` });
+      setSelectedIds([]);
+    } catch (err: any) {
+      toast({
+        title: "Failed to delete some products",
+        description: err.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsMultiDeleteOpen(false);
+    }
+  };
+
+  const handleToggleSelect = (id: number) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
   };
 
   const handleToggleActive = async (product: Product) => {
@@ -183,15 +213,20 @@ export default function Products() {
         const worksheet = workbook.Sheets[sheetName];
         const json = XLSX.utils.sheet_to_json(worksheet) as any[];
 
-        const formattedProducts = json.map((row) => ({
-          name: String(row["Product Name"]),
-          price: String(row["Normal Price"]),
-          images: row["Pic (001.jpg)"] ? [String(row["Pic (001.jpg)"])] : [],
-          stock: Number.parseInt(String(row.Unit)) || 0,
-          categoryId: categories?.[0]?.id || null, // Default to first category
-          description: "",
-          isEnabled: true,
-        }));
+        const formattedProducts = json.map((row) => {
+          const priceStr = String(row["Normal Price"] || "0").replace(/,/g, "");
+          const stockStr = String(row.Unit || "0").replace(/,/g, "");
+          
+          return {
+            name: String(row["Product Name"]),
+            price: priceStr,
+            images: row["Pic (001.jpg)"] ? [String(row["Pic (001.jpg)"])] : [],
+            stock: Number(stockStr) || 0,
+            categoryId: categories?.[0]?.id || 1, // Default to first category or ID 1
+            description: "",
+            isEnabled: true,
+          };
+        });
 
         await apiRequest("POST", api.products.batchCreate.path, formattedProducts);
         queryClient.invalidateQueries({ queryKey: [api.products.list.path] });
@@ -220,6 +255,16 @@ export default function Products() {
         <div className="flex items-center gap-2">
           {user?.role === "admin" && (
             <>
+              {selectedIds.length > 0 && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => setIsMultiDeleteOpen(true)}
+                  className="gap-2"
+                >
+                  <Trash2 className="w-4 h-4" /> Delete Selected ({selectedIds.length})
+                </Button>
+              )}
               <Button variant="outline" size="sm" onClick={handleExportTemplate} className="gap-2">
                 <FileDown className="w-4 h-4" /> Template
               </Button>
@@ -371,6 +416,15 @@ export default function Products() {
             className="group bg-card border border-border/40 rounded-2xl overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
           >
             <div className="aspect-[4/3] bg-secondary/20 relative overflow-hidden">
+              {user?.role === "admin" && (
+                <div className="absolute top-3 left-3 z-10">
+                  <Checkbox
+                    checked={selectedIds.includes(product.id)}
+                    onCheckedChange={() => handleToggleSelect(product.id)}
+                    className="bg-white/90 border-white/50 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                  />
+                </div>
+              )}
               <img
                 src={
                   Array.isArray(product.images) && product.images[0]
@@ -451,6 +505,26 @@ export default function Products() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={isMultiDeleteOpen} onOpenChange={setIsMultiDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {selectedIds.length} Products?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the selected products.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteMultiple}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete All
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

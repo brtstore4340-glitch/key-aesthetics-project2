@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -10,26 +10,28 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
 import { useCreateOrder } from "@/hooks/use-orders";
-import { useProducts } from "@/hooks/use-products";
+import { useCategories, useProducts } from "@/hooks/use-products";
 import { useToast } from "@/hooks/use-toast";
 import { promotions } from "@/lib/constants";
 import type { Product } from "@shared/schema";
 import {
   ArrowRight,
-  CreditCard,
-  ImagePlus,
+  CheckCircle2,
+  LayoutGrid,
   Loader2,
   Minus,
   Plus,
   Search,
   ShoppingCart,
+  Trash2,
+  User,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
-
-// const promotions = ["ไม่มีโปรโมชั่น", "ซื้อ 3 แถม 3"]; // Moved to @/lib/constants
 
 interface CartItem {
   productId: number;
@@ -39,30 +41,36 @@ interface CartItem {
 }
 
 export default function CreateOrder() {
-  const { data: products, isLoading } = useProducts();
+  const { data: products, isLoading: productsLoading } = useProducts();
+  const { data: categories, isLoading: categoriesLoading } = useCategories();
   const { mutateAsync: createOrder, isPending } = useCreateOrder();
   const [_, setLocation] = useLocation();
   const { toast } = useToast();
 
   const [cart, setCart] = useState<CartItem[]>([]);
   const [search, setSearch] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<number | "all">("all");
+  
   const [customerInfo, setCustomerInfo] = useState({
     doctorName: "",
     doctorId: "",
     phone: "",
     address: "",
   });
-  const [offeredPrice, setOfferedPrice] = useState("");
   const [discountInput, setDiscountInput] = useState("0");
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
-  const [idCardFile, setIdCardFile] = useState<File | null>(null);
-  const [paymentFile, setPaymentFile] = useState<File | null>(null);
 
-  const filteredProducts = products?.filter((p) => {
-    const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
-    return matchesSearch;
-  });
+  // Filter products
+  const filteredProducts = useMemo(() => {
+    if (!products) return [];
+    return products.filter((p) => {
+      const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
+      const matchesCategory = selectedCategory === "all" || p.categoryId === selectedCategory;
+      return matchesSearch && matchesCategory;
+    });
+  }, [products, search, selectedCategory]);
 
+  // Cart Operations
   const addToCart = (product: Product) => {
     setCart((prev) => {
       const existing = prev.find((item) => item.productId === product.id);
@@ -73,46 +81,54 @@ export default function CreateOrder() {
       }
       return [...prev, { productId: product.id, product, quantity: 1, promotion: promotions[0] }];
     });
+    toast({
+      title: "Added to cart",
+      description: `${product.name} added.`,
+      duration: 1000,
+    });
   };
 
   const updateQuantity = (productId: number, delta: number) => {
     setCart((prev) => {
-      const next = prev
+      return prev
         .map((item) => {
           if (item.productId === productId) {
-            return { ...item, quantity: item.quantity + delta };
+            const newQuantity = Math.max(0, item.quantity + delta);
+            return { ...item, quantity: newQuantity };
           }
           return item;
         })
         .filter((item) => item.quantity > 0);
-      return next;
     });
   };
 
-  const updatePromotion = (productId: number, promotion: string) => {
+  const setQuantity = (productId: number, value: string) => {
+    const qty = parseInt(value);
+    if (isNaN(qty) || qty < 0) return;
+    
+    if (qty === 0) {
+      removeFromCart(productId);
+      return;
+    }
+
     setCart((prev) =>
-      prev.map((item) =>
-        item.productId === productId
-          ? {
-              ...item,
-              promotion,
-            }
-          : item,
-      ),
+      prev.map((item) => (item.productId === productId ? { ...item, quantity: qty } : item))
     );
   };
 
-  const calculateFreeQuantity = (item: CartItem) => {
-    if (item.promotion === "ซื้อ 3 แถม 3") {
-      return Math.floor(item.quantity / 3) * 3;
-    }
-    return 0;
+  const removeFromCart = (productId: number) => {
+    setCart((prev) => prev.filter((item) => item.productId !== productId));
   };
 
+  const handleClearCart = () => {
+    setCart([]);
+    setDiscountInput("0");
+    setCustomerInfo({ doctorName: "", doctorId: "", phone: "", address: "" });
+  };
+
+  // Calculations
   const subTotal = cart.reduce((sum, item) => {
-    const unitPrice = Number(item.product.price);
-    const paidQuantity = item.quantity;
-    return sum + unitPrice * paidQuantity;
+    return sum + Number(item.product.price) * item.quantity;
   }, 0);
 
   const parseAmount = (value: string) => {
@@ -124,519 +140,347 @@ export default function CreateOrder() {
   const taxableBase = Math.max(0, subTotal - discount);
   const vatAmount = taxableBase * 0.07;
   const grandTotal = taxableBase + vatAmount;
-  const isRequiredInfoComplete =
-    customerInfo.doctorName.trim().length > 0 && customerInfo.address.trim().length > 0;
-  const canSubmit = cart.length > 0 && isRequiredInfoComplete && !isPending;
 
-  const idCardPreview = useMemo(
-    () => (idCardFile ? URL.createObjectURL(idCardFile) : ""),
-    [idCardFile],
-  );
-  const paymentPreview = useMemo(
-    () => (paymentFile ? URL.createObjectURL(paymentFile) : ""),
-    [paymentFile],
-  );
-
-  useEffect(() => {
-    return () => {
-      if (idCardPreview) URL.revokeObjectURL(idCardPreview);
-      if (paymentPreview) URL.revokeObjectURL(paymentPreview);
-    };
-  }, [idCardPreview, paymentPreview]);
-
-  const handleDiscountChange = (value: string) => {
-    setDiscountInput(value);
+  const handleConfirmCheckout = () => {
+    // Simulate processing
+    toast({ title: "Processing payment...", duration: 1000 });
+    
+    setTimeout(() => {
+        toast({ 
+          title: "Payment Successful", 
+          description: `Total ฿${grandTotal.toLocaleString()} received.`,
+          duration: 3000
+        });
+        handleClearCart();
+        setIsCheckoutOpen(false);
+    }, 1000);
   };
 
-  const buildOrderPayload = async (status: "draft" | "submitted") => {
-    const attachments = [];
-    const toDataUrl = (file: File) =>
-      new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = () => reject(new Error("Failed to read file"));
-        reader.readAsDataURL(file);
-      });
-
-    if (idCardFile) {
-      attachments.push({ type: "id_card" as const, url: await toDataUrl(idCardFile) });
-    }
-    if (paymentFile) {
-      attachments.push({ type: "payment_slip" as const, url: await toDataUrl(paymentFile) });
-    }
-
-    return {
-      items: cart.map((item) => {
-        const unitPrice = Number(item.product.price);
-        const paidQuantity = item.quantity;
-        const freeQuantity = calculateFreeQuantity(item);
-        return {
-          productId: item.productId,
-          name: item.product.name,
-          quantity: paidQuantity + freeQuantity,
-          price: unitPrice,
-        };
-      }),
-      total: grandTotal.toFixed(2),
-      status,
-      customerInfo: {
-        ...customerInfo,
-        offeredPrice,
-      },
-      attachments,
-    };
-  };
-
-  const handleSubmit = async () => {
-    if (!canSubmit) return;
-    try {
-      const orderData = await buildOrderPayload("draft");
-      await createOrder(orderData as any);
-      toast({ title: "Order created!", description: "Draft saved successfully." });
-      setLocation("/orders");
-    } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
-    }
-  };
-
-  const handleCheckout = async () => {
-    if (!canSubmit) {
-      toast({
-        title: "กรอกข้อมูลไม่ครบ",
-        description: "กรุณากรอกข้อมูลผู้ซื้อและเพิ่มสินค้าในตะกร้า",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (!idCardFile || !paymentFile) {
-      toast({
-        title: "แนบไฟล์ไม่ครบ",
-        description: "กรุณาแนบรูปบัตรประชาชนและสลิปชำระเงิน",
-        variant: "destructive",
-      });
-      return;
-    }
-    try {
-      const orderData = await buildOrderPayload("submitted");
-      await createOrder(orderData as any);
-      toast({ title: "Checkout สำเร็จ", description: "บันทึกคำสั่งซื้อเรียบร้อยแล้ว" });
-      setCart([]);
-      setDiscountInput("0");
-      setIdCardFile(null);
-      setPaymentFile(null);
-      setIsCheckoutOpen(false);
-      setLocation("/orders");
-    } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
-    }
-  };
-
-  if (isLoading)
+  if (productsLoading || categoriesLoading) {
     return (
-      <div className="flex justify-center p-12">
-        <Loader2 className="animate-spin text-primary" />
+      <div className="flex justify-center items-center h-[calc(100vh-100px)]">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
+  }
 
   return (
-    <div className="flex flex-col gap-6 h-[calc(100vh-120px)] overflow-hidden">
-      <div className="flex justify-end">
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button
-              variant="outline"
-              className="relative h-11 w-11 rounded-full"
-              aria-label="My cart"
-            >
-              <ShoppingCart className="w-5 h-5" />
-              {cart.length > 0 && (
-                <span className="absolute -top-1 -right-1 h-5 min-w-[20px] px-1 rounded-full bg-primary text-[10px] text-primary-foreground flex items-center justify-center">
-                  {cart.length}
-                </span>
-              )}
-            </Button>
-          </SheetTrigger>
-          <SheetContent className="flex flex-col gap-6">
-            <SheetHeader>
-              <SheetTitle className="flex items-center gap-2">
-                <ShoppingCart className="w-5 h-5 text-primary" />
-                My Cart
-              </SheetTitle>
-            </SheetHeader>
-
-            <div className="flex-1 overflow-y-auto pr-2 space-y-4">
-              {cart.length === 0 && (
-                <div className="text-center text-sm text-muted-foreground border border-dashed border-border/60 rounded-2xl py-10">
-                  ยังไม่มีสินค้าในตะกร้า
-                </div>
-              )}
-              {cart.map((item) => (
-                <div
-                  key={item.productId}
-                  className="flex gap-3 rounded-2xl border border-border/50 p-3"
-                >
-                  <div className="w-20 h-20 rounded-xl overflow-hidden bg-secondary/20 border border-border/30">
-                    <img
-                      src={
-                        Array.isArray(item.product.images) && item.product.images[0]
-                          ? String(item.product.images[0])
-                          : "https://placehold.co/200x200/171A1D/D4B16A?text=Product"
-                      }
-                      alt={item.product.name}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="flex-1 space-y-2">
-                    <div>
-                      <p className="font-semibold text-sm">{item.product.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        ฿{Number(item.product.price).toLocaleString()}
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge
-                        variant="secondary"
-                        className="text-[10px] uppercase tracking-wide text-primary/90"
-                      >
-                        {item.promotion}
-                      </Badge>
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-end gap-2">
-                    <div className="flex items-center gap-1 rounded-lg border border-border/40 p-1">
-                      <button
-                        onClick={() => updateQuantity(item.productId, -1)}
-                        className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-secondary"
-                      >
-                        <Minus className="w-4 h-4" />
-                      </button>
-                      <span className="text-sm font-mono font-bold w-6 text-center">
-                        {item.quantity}
-                      </span>
-                      <button
-                        onClick={() => updateQuantity(item.productId, 1)}
-                        className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-secondary"
-                      >
-                        <Plus className="w-4 h-4" />
-                      </button>
-                    </div>
-                    <p className="text-xs font-semibold text-primary">
-                      ฿{(Number(item.product.price) * item.quantity).toLocaleString()}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="space-y-4 border-t border-border/50 pt-4">
-              <p className="text-xs text-muted-foreground">ระบบคำนวณ VAT 7% ให้อัตโนมัติ</p>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">ค่าสินค้า (Subtotal)</span>
-                  <span className="font-semibold">
-                    ฿{subTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                  </span>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs text-muted-foreground">ส่วนลด (ถ้ามี)</label>
-                  <Input
-                    value={discountInput}
-                    onChange={(e) => handleDiscountChange(e.target.value)}
-                    inputMode="decimal"
-                    className="h-10"
-                  />
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">ภาษีมูลค่าเพิ่ม (VAT 7%)</span>
-                  <span className="font-semibold">
-                    ฿{vatAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="font-medium">ยอดรวมสุทธิ (Grand Total)</span>
-                  <span className="text-lg font-bold text-primary">
-                    ฿{grandTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                  </span>
-                </div>
-              </div>
-
-              <Button
-                onClick={() => setIsCheckoutOpen(true)}
-                disabled={cart.length === 0}
-                className="w-full h-11 rounded-xl bg-primary text-primary-foreground font-semibold"
-              >
-                Checkout
-              </Button>
-            </div>
-          </SheetContent>
-        </Sheet>
-      </div>
-      <Card className="border-border/40 shadow-xl">
-        <CardContent className="p-6 space-y-6">
-          <div>
-            <h1 className="text-2xl font-display font-bold tracking-tight">ข้อมูลผู้ซื้อ</h1>
-            <p className="text-muted-foreground text-sm">กรอกข้อมูลให้ครบถ้วนเพื่อบันทึกคำสั่งซื้อ</p>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <label htmlFor="doctorName" className="text-sm font-medium">
-                ชื่อ-นามสกุลแพทย์ (ระบุคำนำหน้า) *
-              </label>
-              <Input
-                className="bg-secondary/20 border-border/40 focus:ring-primary/20 h-11"
-                name="doctorName"
-                id="doctorName"
-                placeholder="นพ.สมชาย ใจดี"
-                required
-                value={customerInfo.doctorName}
-                onChange={(e) => setCustomerInfo({ ...customerInfo, doctorName: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <label htmlFor="doctorId" className="text-sm font-medium">
-                เลข ว. แพทย์
-              </label>
-              <Input
-                className="bg-secondary/20 border-border/40 focus:ring-primary/20 h-11"
-                name="doctorId"
-                id="doctorId"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                placeholder="เลข ว. แพทย์"
-                value={customerInfo.doctorId}
-                onChange={(e) => {
-                  const digitsOnly = e.target.value.replace(/\D/g, "");
-                  setCustomerInfo({ ...customerInfo, doctorId: digitsOnly });
-                }}
-              />
-            </div>
-            <div className="space-y-2">
-              <label htmlFor="phone" className="text-sm font-medium">
-                เบอร์โทร
-              </label>
-              <Input
-                className="bg-secondary/20 border-border/40 focus:ring-primary/20 h-11"
-                name="phone"
-                id="phone"
-                placeholder="08x-xxx-xxxx"
-                value={customerInfo.phone}
-                onChange={(e) => setCustomerInfo({ ...customerInfo, phone: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2 md:col-span-2">
-              <label htmlFor="address" className="text-sm font-medium">
-                ที่อยู่จัดส่งสินค้า *
-              </label>
-              <textarea
-                className="w-full bg-secondary/20 border border-border/40 rounded-xl px-4 py-3 text-sm focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/5 transition-all resize-none h-24"
-                name="address"
-                id="address"
-                placeholder="รายละเอียดที่อยู่จัดส่งสินค้า"
-                value={customerInfo.address}
-                onChange={(e) => setCustomerInfo({ ...customerInfo, address: e.target.value })}
-              />
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <Button
-              variant="secondary"
-              onClick={handleSubmit}
-              disabled={!canSubmit}
-              className="rounded-xl"
-            >
-              บันทึกแบบร่าง
-            </Button>
-            {!isRequiredInfoComplete && (
-              <p className="text-xs text-muted-foreground flex items-center">
-                กรุณากรอกข้อมูลผู้ซื้อให้ครบ
-              </p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="border-border/40 shadow-xl flex-1 overflow-hidden">
-        <CardContent className="p-6 h-full flex flex-col gap-6">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="h-[calc(100vh-100px)] flex flex-col lg:flex-row gap-6 pb-4">
+      {/* LEFT COLUMN: PRODUCTS */}
+      <div className="flex-1 flex flex-col gap-4 min-w-0">
+        <div className="flex flex-col gap-4 bg-white/50 backdrop-blur-sm p-4 rounded-2xl border border-slate-100 shadow-sm">
+          {/* Header & Search */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h2 className="text-2xl font-display font-bold tracking-tight">เลือกสินค้า</h2>
-              <p className="text-muted-foreground text-sm">เลือกสินค้า พร้อมระบุโปรโมชั่นในแต่ละรายการ</p>
+              <h1 className="text-2xl font-display font-bold text-slate-800">Products</h1>
+              <p className="text-sm text-muted-foreground">Select products to add to cart</p>
             </div>
-            <div className="relative">
+            <div className="relative w-full sm:w-72">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                className="pl-9 w-[220px] bg-secondary/20 border-border/40"
-                name="productSearch"
-                id="productSearch"
-                placeholder="ค้นหาสินค้า"
+                className="pl-9 bg-white border-slate-200"
+                placeholder="Search products..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto pr-2 no-scrollbar space-y-4">
-            {filteredProducts?.map((product) => {
-              const cartItem = cart.find((item) => item.productId === product.id);
-              return (
-                <div
-                  key={product.id}
-                  className="flex flex-col lg:flex-row gap-4 items-start lg:items-center border border-border/40 rounded-2xl p-4 bg-secondary/10"
-                >
-                  <div className="w-full lg:w-44 aspect-[4/3] rounded-xl overflow-hidden bg-secondary/20 border border-border/30">
-                    <img
-                      src={
-                        Array.isArray(product.images) && product.images[0]
-                          ? String(product.images[0])
-                          : "https://placehold.co/600x400/171A1D/D4B16A?text=Product"
-                      }
-                      alt={product.name}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="flex-1 space-y-2">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                      <div>
-                        <h3 className="font-semibold text-lg leading-tight">{product.name}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          ราคา ฿{Number(product.price).toLocaleString()}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2 bg-background/70 rounded-lg p-1">
-                        <button
-                          onClick={() => (cartItem ? updateQuantity(product.id, -1) : null)}
-                          className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-secondary transition-colors"
-                          disabled={!cartItem}
-                        >
-                          <Minus className="w-4 h-4" />
-                        </button>
-                        <span className="text-sm font-mono font-bold w-5 text-center">
-                          {cartItem?.quantity ?? 0}
-                        </span>
-                        <button
-                          onClick={() => addToCart(product)}
-                          className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-secondary transition-colors"
-                        >
-                          <Plus className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                    <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_180px] md:items-center">
-                      <div className="text-sm text-muted-foreground">
-                        {cartItem ? "เลือกโปรโมชั่นสำหรับสินค้านี้" : "กด + เพื่อเพิ่มสินค้าในคำสั่งซื้อ"}
-                      </div>
-                      <select
-                        className="h-10 rounded-xl border border-border/40 bg-secondary/20 px-3 text-sm focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/5"
-                        value={cartItem?.promotion ?? promotions[0]}
-                        onChange={(e) => updatePromotion(product.id, e.target.value)}
-                        disabled={!cartItem}
-                      >
-                        {promotions.map((promotion) => (
-                          <option key={promotion} value={promotion}>
-                            {promotion}
-                          </option>
-                        ))}
-                      </select>
+          {/* Categories */}
+          <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+            <Button
+              variant={selectedCategory === "all" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSelectedCategory("all")}
+              className="rounded-full px-4"
+            >
+              <LayoutGrid className="w-4 h-4 mr-2" />
+              All
+            </Button>
+            {categories?.map((cat) => (
+              <Button
+                key={cat.id}
+                variant={selectedCategory === cat.id ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSelectedCategory(cat.id)}
+                className="rounded-full px-4 whitespace-nowrap"
+                style={
+                  selectedCategory === cat.id
+                    ? { backgroundColor: cat.colorTag, borderColor: cat.colorTag }
+                    : {}
+                }
+              >
+                {cat.name}
+              </Button>
+            ))}
+          </div>
+        </div>
+
+        {/* Product Grid */}
+        <ScrollArea className="flex-1 rounded-2xl border border-slate-100 bg-white/40 shadow-inner p-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+            {filteredProducts.map((product) => (
+              <div
+                key={product.id}
+                className="group relative bg-white rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-all cursor-pointer overflow-hidden flex flex-col"
+                onClick={() => addToCart(product)}
+              >
+                <div className="aspect-square bg-slate-50 relative overflow-hidden">
+                  <img
+                    src={
+                      Array.isArray(product.images) && product.images[0]
+                        ? String(product.images[0])
+                        : "https://placehold.co/200x200/F1F5F9/94A3B8?text=Product"
+                    }
+                    alt={product.name}
+                    className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                  />
+                  {/* Overlay Add Button */}
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                    <div className="bg-white text-primary rounded-full p-2 shadow-lg transform scale-90 group-hover:scale-100 transition-transform">
+                      <Plus className="w-6 h-6" />
                     </div>
                   </div>
                 </div>
-              );
-            })}
+                <div className="p-3 flex flex-col flex-1">
+                  <h3 className="font-semibold text-sm line-clamp-2 mb-1">{product.name}</h3>
+                  <div className="mt-auto flex items-center justify-between">
+                    <span className="text-primary font-bold">฿{Number(product.price).toLocaleString()}</span>
+                    <span className="text-xs text-muted-foreground">Stock: {product.stock}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+            {filteredProducts.length === 0 && (
+              <div className="col-span-full flex flex-col items-center justify-center py-12 text-muted-foreground">
+                <Search className="w-12 h-12 mb-4 opacity-20" />
+                <p>No products found</p>
+              </div>
+            )}
+          </div>
+        </ScrollArea>
+      </div>
+
+      {/* RIGHT COLUMN: CART */}
+      <Card className="w-full lg:w-[400px] flex flex-col shadow-xl border-slate-200 h-full overflow-hidden">
+        <CardHeader className="bg-slate-50/50 border-b border-slate-100 py-4">
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <ShoppingCart className="w-5 h-5 text-primary" />
+              Current Order
+            </CardTitle>
+            <Badge variant="secondary" className="font-mono">
+              {cart.length} Items
+            </Badge>
+          </div>
+        </CardHeader>
+
+        <CardContent className="flex-1 overflow-y-auto p-4 space-y-3 bg-white/50">
+          {cart.length === 0 ? (
+            <div className="h-full flex flex-col items-center justify-center text-muted-foreground space-y-4 opacity-60">
+              <ShoppingCart className="w-16 h-16" />
+              <p>Cart is empty</p>
+              <p className="text-xs">Select products to start selling</p>
+            </div>
+          ) : (
+            cart.map((item) => (
+              <div
+                key={item.productId}
+                className="flex gap-3 bg-white p-3 rounded-xl border border-slate-100 shadow-sm"
+              >
+                <div className="w-16 h-16 rounded-lg bg-slate-50 overflow-hidden flex-shrink-0 border border-slate-100">
+                   <img
+                    src={
+                      Array.isArray(item.product.images) && item.product.images[0]
+                        ? String(item.product.images[0])
+                        : "https://placehold.co/100x100/F1F5F9/94A3B8?text=Img"
+                    }
+                    alt={item.product.name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="flex-1 min-w-0 flex flex-col justify-between">
+                  <div className="flex justify-between items-start gap-2">
+                    <p className="font-medium text-sm truncate leading-tight">{item.product.name}</p>
+                    <button 
+                      onClick={() => removeFromCart(item.productId)}
+                      className="text-muted-foreground hover:text-destructive transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                  
+                  <div className="flex items-center justify-between mt-2">
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-7 w-7 rounded-lg"
+                        onClick={() => updateQuantity(item.productId, -1)}
+                      >
+                        <Minus className="w-3 h-3" />
+                      </Button>
+                      <Input
+                        className="h-7 w-12 px-1 text-center font-mono text-sm"
+                        value={item.quantity}
+                        onChange={(e) => setQuantity(item.productId, e.target.value)}
+                      />
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-7 w-7 rounded-lg"
+                        onClick={() => updateQuantity(item.productId, 1)}
+                      >
+                        <Plus className="w-3 h-3" />
+                      </Button>
+                    </div>
+                    <p className="font-bold text-sm">
+                      ฿{(Number(item.product.price) * item.quantity).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </CardContent>
+
+        <CardFooter className="flex-col bg-slate-50/80 border-t border-slate-100 p-4 gap-4 backdrop-blur-sm">
+          <div className="w-full space-y-2 text-sm">
+            <div className="flex justify-between text-muted-foreground">
+              <span>Subtotal</span>
+              <span>฿{subTotal.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between items-center gap-4">
+              <span className="text-muted-foreground whitespace-nowrap">Discount</span>
+              <Input 
+                className="h-8 w-24 text-right" 
+                value={discountInput}
+                onChange={(e) => setDiscountInput(e.target.value)}
+              />
+            </div>
+            <div className="flex justify-between text-muted-foreground">
+              <span>VAT (7%)</span>
+              <span>฿{vatAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+            </div>
+            <Separator className="my-2" />
+            <div className="flex justify-between font-bold text-lg text-slate-800">
+              <span>Total</span>
+              <span className="text-primary">฿{grandTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+            </div>
           </div>
 
-          <div className="border-t border-border/40 pt-6 space-y-4">
-            <div className="flex flex-wrap items-end justify-between gap-4">
-              <div>
-                <p className="text-sm text-muted-foreground uppercase tracking-widest">ราคารวม</p>
-                <p className="text-3xl font-display font-bold text-primary">
-                  ฿{subTotal.toLocaleString()}
-                </p>
-              </div>
-              <div className="w-full sm:w-64 space-y-2">
-                <label htmlFor="offeredPrice" className="text-sm font-medium">
-                  ราคาที่ผู้แทนเสนอ
-                </label>
-                <Input
-                  className="bg-secondary/20 border-border/40 focus:ring-primary/20 h-11"
-                  name="offeredPrice"
-                  id="offeredPrice"
-                  inputMode="decimal"
-                  placeholder="กรอกราคาเสนอ"
-                  value={offeredPrice}
-                  onChange={(e) => setOfferedPrice(e.target.value)}
-                />
-              </div>
-            </div>
-            <Button
-              onClick={handleSubmit}
-              disabled={!canSubmit}
-              className="w-full h-12 rounded-2xl bg-primary text-primary-foreground text-lg font-bold shadow-2xl shadow-primary/30 hover:shadow-primary/50 hover:-translate-y-1 transition-all active:scale-95 disabled:opacity-50 disabled:translate-y-0 gap-3"
+          <div className="grid grid-cols-4 gap-2 w-full">
+            <Button 
+              variant="outline" 
+              className="col-span-1 border-destructive/20 text-destructive hover:bg-destructive/10"
+              onClick={handleClearCart}
+              disabled={cart.length === 0}
             >
-              {isPending ? (
-                <Loader2 className="animate-spin w-6 h-6" />
-              ) : (
-                <>
-                  บันทึก <ArrowRight className="w-5 h-5" />
-                </>
-              )}
+              <Trash2 className="w-5 h-5" />
+            </Button>
+            <Button 
+              className="col-span-3 bg-primary hover:bg-primary/90 text-white font-bold shadow-lg shadow-primary/20"
+              disabled={cart.length === 0}
+              onClick={() => setIsCheckoutOpen(true)}
+            >
+              Checkout
+              <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
           </div>
-        </CardContent>
+        </CardFooter>
       </Card>
 
+      {/* CHECKOUT DIALOG */}
       <Dialog open={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>แนบหลักฐานการชำระเงิน</DialogTitle>
-            <DialogDescription>แนบรูปบัตรประชาชนและสลิปการชำระเงินก่อนยืนยันคำสั่งซื้อ</DialogDescription>
+            <DialogTitle className="text-2xl font-display flex items-center gap-2">
+              <CheckCircle2 className="w-6 h-6 text-primary" />
+              Order Summary & Payment
+            </DialogTitle>
+            <DialogDescription>
+              Review the order details and complete customer information.
+            </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium flex items-center gap-2">
-                <ImagePlus className="w-4 h-4 text-primary" />
-                รูปบัตรประชาชน
-              </label>
-              <Input
-                type="file"
-                accept="image/*"
-                capture="environment"
-                onChange={(e) => setIdCardFile(e.target.files?.[0] ?? null)}
-              />
-              {idCardPreview && (
-                <img
-                  src={idCardPreview}
-                  alt="ID card preview"
-                  className="w-full rounded-xl border border-border/40"
-                />
-              )}
+          <div className="grid md:grid-cols-2 gap-6 py-4">
+            {/* Left: Summary */}
+            <div className="space-y-4">
+              <h3 className="font-semibold flex items-center gap-2">
+                <ShoppingCart className="w-4 h-4" /> Order Items
+              </h3>
+              <div className="bg-slate-50 rounded-xl p-4 space-y-3 max-h-[300px] overflow-y-auto border border-slate-100">
+                {cart.map((item) => (
+                  <div key={item.productId} className="flex justify-between text-sm">
+                    <div>
+                      <span className="font-medium">{item.product.name}</span>
+                      <div className="text-muted-foreground text-xs">
+                        {item.quantity} x ฿{Number(item.product.price).toLocaleString()}
+                      </div>
+                    </div>
+                    <span className="font-semibold">
+                      ฿{(Number(item.product.price) * item.quantity).toLocaleString()}
+                    </span>
+                  </div>
+                ))}
+                <Separator />
+                <div className="flex justify-between font-bold pt-2">
+                  <span>Grand Total</span>
+                  <span className="text-primary">฿{grandTotal.toLocaleString()}</span>
+                </div>
+              </div>
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium flex items-center gap-2">
-                <CreditCard className="w-4 h-4 text-primary" />
-                รูปสลิปการโอนเงิน
-              </label>
-              <Input
-                type="file"
-                accept="image/*"
-                capture="environment"
-                onChange={(e) => setPaymentFile(e.target.files?.[0] ?? null)}
-              />
-              {paymentPreview && (
-                <img
-                  src={paymentPreview}
-                  alt="Payment preview"
-                  className="w-full rounded-xl border border-border/40"
-                />
-              )}
+
+            {/* Right: Customer Info */}
+            <div className="space-y-4">
+              <h3 className="font-semibold flex items-center gap-2">
+                <User className="w-4 h-4" /> Customer Information
+              </h3>
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-medium">Doctor Name</label>
+                  <Input 
+                    placeholder="ex. Dr. Somchai" 
+                    value={customerInfo.doctorName}
+                    onChange={(e) => setCustomerInfo({...customerInfo, doctorName: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium">Doctor ID</label>
+                  <Input 
+                    placeholder="Medical License ID" 
+                    value={customerInfo.doctorId}
+                    onChange={(e) => setCustomerInfo({...customerInfo, doctorId: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium">Phone</label>
+                  <Input 
+                    placeholder="08x-xxx-xxxx" 
+                    value={customerInfo.phone}
+                    onChange={(e) => setCustomerInfo({...customerInfo, phone: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium">Address</label>
+                  <Textarea 
+                    placeholder="Shipping Address" 
+                    className="h-20 resize-none"
+                    value={customerInfo.address}
+                    onChange={(e) => setCustomerInfo({...customerInfo, address: e.target.value})}
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="secondary" onClick={() => setIsCheckoutOpen(false)}>
-              ยกเลิก
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setIsCheckoutOpen(false)}>
+              Cancel
             </Button>
-            <Button onClick={handleCheckout}>ยืนยัน Checkout</Button>
+            <Button onClick={handleConfirmCheckout} className="bg-primary text-white">
+              Confirm Payment (Demo)
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

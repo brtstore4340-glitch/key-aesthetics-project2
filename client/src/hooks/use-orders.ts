@@ -15,6 +15,8 @@ export function useOrders(status?: string, role?: string) {
       if (!res.ok) throw new Error("Failed to fetch orders");
       return api.orders.list.responses[200].parse(await res.json());
     },
+    enabled: !!role, // Only fetch if role is known (user is logged in)
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 }
 

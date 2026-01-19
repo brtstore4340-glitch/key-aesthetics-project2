@@ -67,8 +67,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     if (!req.isAuthenticated() || req.user?.role !== "admin") {
       return res.status(403).send("Forbidden");
     }
-    const product = await storage.getProduct(Number(req.params.id));
-    if (!product) return res.status(404).json({ message: "Product not found" });
     await storage.deleteProduct(Number(req.params.id));
     res.sendStatus(200);
   });

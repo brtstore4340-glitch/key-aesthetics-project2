@@ -104,10 +104,15 @@ export const insertCategorySchema = createInsertSchema(categories).omit({ id: tr
 export const insertProductSchema = createInsertSchema(products)
   .omit({ id: true, createdAt: true })
   .extend({
-    price: z
-      .string()
-      .min(1, "Price is required")
-      .regex(/^\d+(\.\d{1,2})?$/, "Invalid price format"),
+    price: z.preprocess(
+      (val) => {
+        if (val === null || val === undefined) return "";
+        return String(val).replace(/,/g, "");
+      },
+      z.string()
+        .min(1, "Price is required")
+        .regex(/^\d+(\.\d{1,2})?$/, "Invalid price format")
+    ),
     stock: z.number().min(0),
     categoryId: z.number().int().positive(),
   });

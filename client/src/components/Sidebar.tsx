@@ -59,7 +59,7 @@ export function Sidebar() {
   const links = getLinks();
 
   const NavContent = () => (
-    <div className="flex flex-col h-full bg-card/95 backdrop-blur-xl border-r border-border/40 p-6 shadow-2xl">
+    <div className="flex flex-col h-full bg-white/80 backdrop-blur-md border-r border-slate-100 p-6 shadow-xl">
       <div className="flex items-center gap-3 mb-10 px-2">
         <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-primary to-amber-300 shadow-lg shadow-primary/20 flex items-center justify-center text-primary-foreground font-bold font-display">
           S
