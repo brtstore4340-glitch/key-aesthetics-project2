@@ -456,7 +456,7 @@ export default function Products() {
                   ฿{Number(product.price).toLocaleString()}
                 </span>
                 <span className="text-xs text-muted-foreground uppercase tracking-wider">
-                  {categories?.find((c: Category) => c.id === product.categoryId)?.name ||
+                  #{product.id} • {categories?.find((c: Category) => c.id === product.categoryId)?.name ||
                     "Uncategorized"}
                 </span>
               </div>

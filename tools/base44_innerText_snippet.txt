@@ -1,0 +1,51 @@
+(() => {
+  const XPATH = "/html/body/div[1]/div/div[4]/div/div/div/div/div[3]/div/div/div[2]/div/div/div[3]/div/div/div/div[1]/div/div[2]/div/nav/div/div[1]/div/div[1]/button/div";
+  const TIMEOUT_MS = 10000;
+  const INTERVAL_MS = 200;
+
+  const now = () => Date.now();
+  const deadline = now() + TIMEOUT_MS;
+
+  const getNode = () => {
+    try {
+      return document.evaluate(
+        XPATH,
+        document,
+        null,
+        XPathResult.FIRST_ORDERED_NODE_TYPE,
+        null
+      ).singleNodeValue || null;
+    } catch (e) {
+      console.error("XPath evaluate failed:", e);
+      return null;
+    }
+  };
+
+  const printResult = (el) => {
+    console.log("FOUND:", el);
+    const text = el ? (el.innerText ?? el.textContent ?? "") : null;
+    console.log("innerText:", text);
+    return text;
+  };
+
+  // 1) Quick try
+  const first = getNode();
+  if (first) return printResult(first);
+
+  // 2) Poll until timeout
+  return new Promise((resolve) => {
+    const t = setInterval(() => {
+      const el = getNode();
+      if (el) {
+        clearInterval(t);
+        resolve(printResult(el));
+        return;
+      }
+      if (now() > deadline) {
+        clearInterval(t);
+        console.warn("Timeout: element not found by XPath");
+        resolve(null);
+      }
+    }, INTERVAL_MS);
+  });
+})();

@@ -105,15 +105,15 @@
     "bufferutil": "^4.0.8"
   },
   "scripts": {
-    "audit": "npm audit --audit-level=high",
-    "build": "tsx script/build.ts",
-    "check": "biome check .",
-    "dev": "tsx watch shared/server/index.ts",
-    "fix": "node tools/review-project.mjs fix",
-    "fix:tailwind-border": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\fix-tailwind-border-border.ps1",
-    "format": "biome format .",
-    "lint": "biome lint .",
     "review": "node tools/review-project.mjs run",
+    "dev": "tsx watch shared/server/index.ts",
+    "build": "tsx script/build.ts",
+    "lint": "biome lint .",
+    "check": "biome check .",
+    "fix": "node tools/review-project.mjs fix",
+    "format": "biome format .",
+    "fix:tailwind-border": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\fix-tailwind-border-border.ps1",
+    "audit": "npm audit --audit-level=high",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   }

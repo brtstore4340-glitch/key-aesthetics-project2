@@ -1,489 +1,518 @@
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
-import { Textarea } from "@/components/ui/textarea";
-import { useCreateOrder } from "@/hooks/use-orders";
-import { useCategories, useProducts } from "@/hooks/use-products";
-import { useToast } from "@/hooks/use-toast";
-import { promotions } from "@/lib/constants";
-import type { Product } from "@shared/schema";
-import {
-  ArrowRight,
-  CheckCircle2,
-  LayoutGrid,
-  Loader2,
-  Minus,
-  Plus,
-  Search,
-  ShoppingCart,
-  Trash2,
-  User,
-} from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
-import { useLocation } from "wouter";
+import { useState, useEffect } from "react";
+import { base44 } from "@/api/base44Client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { createPageUrl } from "@/utils";
+import { Home, ShoppingCart, FileText, ArrowLeft, ArrowRight, Minus, Plus, Check } from "lucide-react";
+import DashboardLayout from "@/components/layout/DashboardLayout";
+import GlassCard from "@/components/ui/GlassCard";
+import GlassButton from "@/components/ui/GlassButton";
+import GlassInput from "@/components/ui/GlassInput";
+import GlassUpload from "@/components/ui/GlassUpload";
+import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
 
-interface CartItem {
-  productId: number;
-  product: Product;
-  quantity: number;
-  promotion: string;
-}
+const VAT_RATE = 0.07;
 
 export default function CreateOrder() {
-  const { data: products, isLoading: productsLoading } = useProducts();
-  const { data: categories, isLoading: categoriesLoading } = useCategories();
-  const { mutateAsync: createOrder, isPending } = useCreateOrder();
-  const [_, setLocation] = useLocation();
-  const { toast } = useToast();
-
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [search, setSearch] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<number | "all">("all");
-  
+  const [currentUser, setCurrentUser] = useState(null);
+  const [step, setStep] = useState(1);
+  const [cart, setCart] = useState({});
   const [customerInfo, setCustomerInfo] = useState({
-    doctorName: "",
-    doctorId: "",
+    name: "",
     phone: "",
-    address: "",
+    address: ""
   });
-  const [discountInput, setDiscountInput] = useState("0");
-  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [documents, setDocuments] = useState({
+    citizen_id: null,
+    payment_slip: null
+  });
+  const [customTotal, setCustomTotal] = useState(null);
+  const queryClient = useQueryClient();
 
-  // Filter products
-  const filteredProducts = useMemo(() => {
-    if (!products) return [];
-    return products.filter((p) => {
-      const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
-      const matchesCategory = selectedCategory === "all" || p.categoryId === selectedCategory;
-      return matchesSearch && matchesCategory;
-    });
-  }, [products, search, selectedCategory]);
-
-  // Cart Operations
-  const addToCart = (product: Product) => {
-    setCart((prev) => {
-      const existing = prev.find((item) => item.productId === product.id);
-      if (existing) {
-        return prev.map((item) =>
-          item.productId === product.id ? { ...item, quantity: item.quantity + 1 } : item,
-        );
-      }
-      return [...prev, { productId: product.id, product, quantity: 1, promotion: promotions[0] }];
-    });
-    toast({
-      title: "Added to cart",
-      description: `${product.name} added.`,
-      duration: 1000,
-    });
-  };
-
-  const updateQuantity = (productId: number, delta: number) => {
-    setCart((prev) => {
-      return prev
-        .map((item) => {
-          if (item.productId === productId) {
-            const newQuantity = Math.max(0, item.quantity + delta);
-            return { ...item, quantity: newQuantity };
-          }
-          return item;
-        })
-        .filter((item) => item.quantity > 0);
-    });
-  };
-
-  const setQuantity = (productId: number, value: string) => {
-    const qty = parseInt(value);
-    if (isNaN(qty) || qty < 0) return;
-    
-    if (qty === 0) {
-      removeFromCart(productId);
-      return;
+  useEffect(() => {
+    const user = sessionStorage.getItem("authenticated_user");
+    if (user) {
+      setCurrentUser(JSON.parse(user));
+    } else {
+      window.location.href = createPageUrl("StaffSelection");
     }
+  }, []);
 
-    setCart((prev) =>
-      prev.map((item) => (item.productId === productId ? { ...item, quantity: qty } : item))
-    );
+  const { data: products = [], isLoading: productsLoading } = useQuery({
+    queryKey: ["products"],
+    queryFn: () => base44.entities.Product.list()
+  });
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ["categories"],
+    queryFn: () => base44.entities.ProductCategory.list()
+  });
+
+  const createOrderMutation = useMutation({
+    mutationFn: (orderData) => base44.entities.Order.create(orderData),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["orders"]);
+      setStep(5); // Success step
+    }
+  });
+
+  const navItems = [
+    { label: "Dashboard", path: "StaffDashboard", icon: Home },
+    { label: "New Order", path: "CreateOrder", icon: ShoppingCart, active: true },
+    { label: "My Orders", path: "StaffOrders", icon: FileText }
+  ];
+
+  if (!currentUser) return null;
+
+  const updateQuantity = (productId, delta) => {
+    setCart((prev) => {
+      const currentQty = prev[productId] || 0;
+      const newQty = Math.max(0, currentQty + delta);
+      if (newQty === 0) {
+        const { [productId]: _, ...rest } = prev;
+        return rest;
+      }
+      return { ...prev, [productId]: newQty };
+    });
   };
 
-  const removeFromCart = (productId: number) => {
-    setCart((prev) => prev.filter((item) => item.productId !== productId));
+  const getCartItems = () => {
+    return Object.entries(cart).map(([productId, quantity]) => {
+      const product = products.find((p) => p.id === productId);
+      return {
+        product_id: productId,
+        product_name: product?.name,
+        quantity,
+        unit_price: product?.price || 0,
+        total: quantity * (product?.price || 0)
+      };
+    });
   };
 
-  const handleClearCart = () => {
-    setCart([]);
-    setDiscountInput("0");
-    setCustomerInfo({ doctorName: "", doctorId: "", phone: "", address: "" });
+  const subtotal = getCartItems().reduce((sum, item) => sum + item.total, 0);
+  const vatAmount = subtotal * VAT_RATE;
+  const calculatedTotal = subtotal + vatAmount;
+  const finalTotal = customTotal !== null ? customTotal : calculatedTotal;
+
+  const generateOrderNumber = () => {
+    const date = new Date();
+    const prefix = "JLR";
+    const dateStr = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, "0")}${String(date.getDate()).padStart(2, "0")}`;
+    const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+    return `${prefix}-${dateStr}-${random}`;
   };
 
-  // Calculations
-  const subTotal = cart.reduce((sum, item) => {
-    return sum + Number(item.product.price) * item.quantity;
-  }, 0);
-
-  const parseAmount = (value: string) => {
-    const cleaned = value.replace(/[^0-9.]/g, "");
-    return Number.parseFloat(cleaned || "0");
+  const handleSubmitOrder = () => {
+    const orderData = {
+      order_number: generateOrderNumber(),
+      customer_name: customerInfo.name,
+      customer_phone: customerInfo.phone,
+      customer_address: customerInfo.address,
+      items: getCartItems(),
+      subtotal,
+      vat_amount: vatAmount,
+      total_amount: finalTotal,
+      status: "pending",
+      citizen_id_url: documents.citizen_id,
+      payment_slip_url: documents.payment_slip,
+      sales_rep_id: currentUser.id,
+      sales_rep_name: currentUser.full_name
+    };
+    createOrderMutation.mutate(orderData);
   };
 
-  const discount = parseAmount(discountInput);
-  const taxableBase = Math.max(0, subTotal - discount);
-  const vatAmount = taxableBase * 0.07;
-  const grandTotal = taxableBase + vatAmount;
+  const canProceedStep1 = Object.keys(cart).length > 0;
+  const canProceedStep2 = customerInfo.name && customerInfo.phone && customerInfo.address;
 
-  const handleConfirmCheckout = () => {
-    // Simulate processing
-    toast({ title: "Processing payment...", duration: 1000 });
-    
-    setTimeout(() => {
-        toast({ 
-          title: "Payment Successful", 
-          description: `Total ฿${grandTotal.toLocaleString()} received.`,
-          duration: 3000
-        });
-        handleClearCart();
-        setIsCheckoutOpen(false);
-    }, 1000);
-  };
-
-  if (productsLoading || categoriesLoading) {
-    return (
-      <div className="flex justify-center items-center h-[calc(100vh-100px)]">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
-  }
+  const steps = [
+    { num: 1, label: "Products" },
+    { num: 2, label: "Details" },
+    { num: 3, label: "Documents" },
+    { num: 4, label: "Review" }
+  ];
 
   return (
-    <div className="h-[calc(100vh-100px)] flex flex-col lg:flex-row gap-6 pb-4">
-      {/* LEFT COLUMN: PRODUCTS */}
-      <div className="flex-1 flex flex-col gap-4 min-w-0">
-        <div className="flex flex-col gap-4 bg-white/50 backdrop-blur-sm p-4 rounded-2xl border border-slate-100 shadow-sm">
-          {/* Header & Search */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <h1 className="text-2xl font-display font-bold text-slate-800">Products</h1>
-              <p className="text-sm text-muted-foreground">Select products to add to cart</p>
-            </div>
-            <div className="relative w-full sm:w-72">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                className="pl-9 bg-white border-slate-200"
-                placeholder="Search products..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
-          </div>
-
-          {/* Categories */}
-          <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
-            <Button
-              variant={selectedCategory === "all" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setSelectedCategory("all")}
-              className="rounded-full px-4"
-            >
-              <LayoutGrid className="w-4 h-4 mr-2" />
-              All
-            </Button>
-            {categories?.map((cat) => (
-              <Button
-                key={cat.id}
-                variant={selectedCategory === cat.id ? "default" : "outline"}
-                size="sm"
-                onClick={() => setSelectedCategory(cat.id)}
-                className="rounded-full px-4 whitespace-nowrap"
-                style={
-                  selectedCategory === cat.id
-                    ? { backgroundColor: cat.colorTag, borderColor: cat.colorTag }
-                    : {}
-                }
-              >
-                {cat.name}
-              </Button>
+    <DashboardLayout currentUser={currentUser} navItems={navItems}>
+      {/* Step Indicator */}
+      {step < 5 && (
+        <div className="mb-8">
+          <div className="flex items-center justify-center gap-2 md:gap-4">
+            {steps.map((s, i) => (
+              <div key={s.num} className="flex items-center">
+                <div
+                  className={cn(
+                    "w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center text-sm font-medium transition-all",
+                    step >= s.num
+                      ? "bg-gradient-to-br from-amber-400/30 to-amber-600/20 border border-amber-400/50 text-amber-200"
+                      : "bg-white/5 border border-white/20 text-white/40"
+                  )}
+                >
+                  {step > s.num ? <Check className="w-4 h-4" /> : s.num}
+                </div>
+                <span className={cn(
+                  "hidden md:block ml-2 text-sm",
+                  step >= s.num ? "text-amber-200" : "text-white/40"
+                )}>
+                  {s.label}
+                </span>
+                {i < steps.length - 1 && (
+                  <div className={cn(
+                    "w-8 md:w-16 h-0.5 mx-2",
+                    step > s.num ? "bg-amber-400/50" : "bg-white/10"
+                  )} />
+                )}
+              </div>
             ))}
           </div>
         </div>
+      )}
 
-        {/* Product Grid */}
-        <ScrollArea className="flex-1 rounded-2xl border border-slate-100 bg-white/40 shadow-inner p-4">
-          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filteredProducts.map((product) => (
-              <div
-                key={product.id}
-                className="group relative bg-white rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-all cursor-pointer overflow-hidden flex flex-col"
-                onClick={() => addToCart(product)}
-              >
-                <div className="aspect-square bg-slate-50 relative overflow-hidden">
-                  <img
-                    src={
-                      Array.isArray(product.images) && product.images[0]
-                        ? String(product.images[0])
-                        : "https://placehold.co/200x200/F1F5F9/94A3B8?text=Product"
-                    }
-                    alt={product.name}
-                    className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                  />
-                  {/* Overlay Add Button */}
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-                    <div className="bg-white text-primary rounded-full p-2 shadow-lg transform scale-90 group-hover:scale-100 transition-transform">
-                      <Plus className="w-6 h-6" />
-                    </div>
-                  </div>
-                </div>
-                <div className="p-3 flex flex-col flex-1">
-                  <h3 className="font-semibold text-sm line-clamp-2 mb-1">{product.name}</h3>
-                  <div className="mt-auto flex items-center justify-between">
-                    <span className="text-primary font-bold">฿{Number(product.price).toLocaleString()}</span>
-                    <span className="text-xs text-muted-foreground">Stock: {product.stock}</span>
-                  </div>
-                </div>
+      <AnimatePresence mode="wait">
+        {/* Step 1: Product Selection */}
+        {step === 1 && (
+          <motion.div
+            key="step1"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+          >
+            <h2 className="text-xl text-white/80 font-light tracking-wide mb-6">Select Products</h2>
+
+            {productsLoading ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {[...Array(8)].map((_, i) => (
+                  <GlassCard key={i} className="p-4 animate-pulse">
+                    <div className="aspect-square bg-white/10 rounded-xl mb-4" />
+                    <div className="h-4 bg-white/10 rounded mb-2" />
+                    <div className="h-4 w-1/2 bg-white/10 rounded" />
+                  </GlassCard>
+                ))}
               </div>
-            ))}
-            {filteredProducts.length === 0 && (
-              <div className="col-span-full flex flex-col items-center justify-center py-12 text-muted-foreground">
-                <Search className="w-12 h-12 mb-4 opacity-20" />
-                <p>No products found</p>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {products.map((product) => (
+                  <GlassCard
+                    key={product.id}
+                    className={cn(
+                      "p-4 transition-all",
+                      cart[product.id] && "border-amber-400/50 bg-amber-500/10"
+                    )}
+                    hover={false}
+                  >
+                    <div className="aspect-square rounded-xl overflow-hidden bg-white/5 mb-4">
+                      {product.image_url ? (
+                        <img
+                          src={product.image_url}
+                          alt={product.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-white/20">
+                          No Image
+                        </div>
+                      )}
+                    </div>
+                    <h3 className="text-white font-medium truncate">{product.name}</h3>
+                    <p className="text-amber-300 font-light mt-1">฿{product.price?.toLocaleString()}</p>
+
+                    {/* Quantity Controls */}
+                    <div className="flex items-center justify-between mt-4">
+                      <button
+                        onClick={() => updateQuantity(product.id, -1)}
+                        className={cn(
+                          "w-10 h-10 rounded-full flex items-center justify-center transition-all",
+                          cart[product.id]
+                            ? "bg-white/10 text-white hover:bg-white/20"
+                            : "bg-white/5 text-white/30 cursor-not-allowed"
+                        )}
+                        disabled={!cart[product.id]}
+                      >
+                        <Minus className="w-4 h-4" />
+                      </button>
+                      <span className="text-white text-lg font-medium w-12 text-center">
+                        {cart[product.id] || 0}
+                      </span>
+                      <button
+                        onClick={() => updateQuantity(product.id, 1)}
+                        className="w-10 h-10 rounded-full bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 flex items-center justify-center transition-all"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </GlassCard>
+                ))}
               </div>
             )}
-          </div>
-        </ScrollArea>
-      </div>
 
-      {/* RIGHT COLUMN: CART */}
-      <Card className="w-full lg:w-[400px] flex flex-col shadow-xl border-slate-200 h-full overflow-hidden">
-        <CardHeader className="bg-slate-50/50 border-b border-slate-100 py-4">
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <ShoppingCart className="w-5 h-5 text-primary" />
-              Current Order
-            </CardTitle>
-            <Badge variant="secondary" className="font-mono">
-              {cart.length} Items
-            </Badge>
-          </div>
-        </CardHeader>
-
-        <CardContent className="flex-1 overflow-y-auto p-4 space-y-3 bg-white/50">
-          {cart.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-muted-foreground space-y-4 opacity-60">
-              <ShoppingCart className="w-16 h-16" />
-              <p>Cart is empty</p>
-              <p className="text-xs">Select products to start selling</p>
-            </div>
-          ) : (
-            cart.map((item) => (
-              <div
-                key={item.productId}
-                className="flex gap-3 bg-white p-3 rounded-xl border border-slate-100 shadow-sm"
-              >
-                <div className="w-16 h-16 rounded-lg bg-slate-50 overflow-hidden flex-shrink-0 border border-slate-100">
-                   <img
-                    src={
-                      Array.isArray(item.product.images) && item.product.images[0]
-                        ? String(item.product.images[0])
-                        : "https://placehold.co/100x100/F1F5F9/94A3B8?text=Img"
-                    }
-                    alt={item.product.name}
-                    className="w-full h-full object-cover"
-                  />
+            {/* Cart Summary & Next */}
+            <div className="fixed bottom-0 left-0 right-0 md:left-64 p-4 bg-neutral-950/90 backdrop-blur-xl border-t border-white/10">
+              <div className="max-w-4xl mx-auto flex items-center justify-between">
+                <div>
+                  <p className="text-white/40 text-sm">Cart Total</p>
+                  <p className="text-2xl text-amber-300 font-light">฿{subtotal.toLocaleString()}</p>
                 </div>
-                <div className="flex-1 min-w-0 flex flex-col justify-between">
-                  <div className="flex justify-between items-start gap-2">
-                    <p className="font-medium text-sm truncate leading-tight">{item.product.name}</p>
-                    <button 
-                      onClick={() => removeFromCart(item.productId)}
-                      className="text-muted-foreground hover:text-destructive transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                  
-                  <div className="flex items-center justify-between mt-2">
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-7 w-7 rounded-lg"
-                        onClick={() => updateQuantity(item.productId, -1)}
-                      >
-                        <Minus className="w-3 h-3" />
-                      </Button>
-                      <Input
-                        className="h-7 w-12 px-1 text-center font-mono text-sm"
-                        value={item.quantity}
-                        onChange={(e) => setQuantity(item.productId, e.target.value)}
-                      />
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-7 w-7 rounded-lg"
-                        onClick={() => updateQuantity(item.productId, 1)}
-                      >
-                        <Plus className="w-3 h-3" />
-                      </Button>
-                    </div>
-                    <p className="font-bold text-sm">
-                      ฿{(Number(item.product.price) * item.quantity).toLocaleString()}
-                    </p>
-                  </div>
-                </div>
+                <GlassButton
+                  variant="gold"
+                  onClick={() => setStep(2)}
+                  disabled={!canProceedStep1}
+                  className="flex items-center gap-2"
+                >
+                  Next <ArrowRight className="w-4 h-4" />
+                </GlassButton>
               </div>
-            ))
-          )}
-        </CardContent>
-
-        <CardFooter className="flex-col bg-slate-50/80 border-t border-slate-100 p-4 gap-4 backdrop-blur-sm">
-          <div className="w-full space-y-2 text-sm">
-            <div className="flex justify-between text-muted-foreground">
-              <span>Subtotal</span>
-              <span>฿{subTotal.toLocaleString()}</span>
             </div>
-            <div className="flex justify-between items-center gap-4">
-              <span className="text-muted-foreground whitespace-nowrap">Discount</span>
-              <Input 
-                className="h-8 w-24 text-right" 
-                value={discountInput}
-                onChange={(e) => setDiscountInput(e.target.value)}
+            <div className="h-24" />
+          </motion.div>
+        )}
+
+        {/* Step 2: Customer Details */}
+        {step === 2 && (
+          <motion.div
+            key="step2"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="max-w-xl mx-auto"
+          >
+            <h2 className="text-xl text-white/80 font-light tracking-wide mb-6">Customer Details</h2>
+
+            <GlassCard className="p-6 space-y-6" hover={false}>
+              <GlassInput
+                label="Customer Name"
+                placeholder="Enter full name"
+                value={customerInfo.name}
+                onChange={(e) => setCustomerInfo({ ...customerInfo, name: e.target.value })}
               />
-            </div>
-            <div className="flex justify-between text-muted-foreground">
-              <span>VAT (7%)</span>
-              <span>฿{vatAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
-            </div>
-            <Separator className="my-2" />
-            <div className="flex justify-between font-bold text-lg text-slate-800">
-              <span>Total</span>
-              <span className="text-primary">฿{grandTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
-            </div>
-          </div>
+              <GlassInput
+                label="Phone Number"
+                placeholder="Enter phone number"
+                type="tel"
+                value={customerInfo.phone}
+                onChange={(e) => setCustomerInfo({ ...customerInfo, phone: e.target.value })}
+              />
+              <div className="space-y-2">
+                <label className="text-sm text-white/60 font-light tracking-wide">
+                  Delivery Address
+                </label>
+                <textarea
+                  placeholder="Enter delivery address"
+                  value={customerInfo.address}
+                  onChange={(e) => setCustomerInfo({ ...customerInfo, address: e.target.value })}
+                  className="w-full px-4 py-3 rounded-xl bg-white/5 backdrop-blur-xl border-b border-white/20 focus:border-amber-400/50 text-white placeholder:text-white/30 outline-none transition-all duration-300 focus:bg-white/10 focus:ring-1 focus:ring-amber-400/30 resize-none h-32"
+                />
+              </div>
 
-          <div className="grid grid-cols-4 gap-2 w-full">
-            <Button 
-              variant="outline" 
-              className="col-span-1 border-destructive/20 text-destructive hover:bg-destructive/10"
-              onClick={handleClearCart}
-              disabled={cart.length === 0}
-            >
-              <Trash2 className="w-5 h-5" />
-            </Button>
-            <Button 
-              className="col-span-3 bg-primary hover:bg-primary/90 text-white font-bold shadow-lg shadow-primary/20"
-              disabled={cart.length === 0}
-              onClick={() => setIsCheckoutOpen(true)}
-            >
-              Checkout
-              <ArrowRight className="w-5 h-5 ml-2" />
-            </Button>
-          </div>
-        </CardFooter>
-      </Card>
-
-      {/* CHECKOUT DIALOG */}
-      <Dialog open={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-display flex items-center gap-2">
-              <CheckCircle2 className="w-6 h-6 text-primary" />
-              Order Summary & Payment
-            </DialogTitle>
-            <DialogDescription>
-              Review the order details and complete customer information.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="grid md:grid-cols-2 gap-6 py-4">
-            {/* Left: Summary */}
-            <div className="space-y-4">
-              <h3 className="font-semibold flex items-center gap-2">
-                <ShoppingCart className="w-4 h-4" /> Order Items
-              </h3>
-              <div className="bg-slate-50 rounded-xl p-4 space-y-3 max-h-[300px] overflow-y-auto border border-slate-100">
-                {cart.map((item) => (
-                  <div key={item.productId} className="flex justify-between text-sm">
-                    <div>
-                      <span className="font-medium">{item.product.name}</span>
-                      <div className="text-muted-foreground text-xs">
-                        {item.quantity} x ฿{Number(item.product.price).toLocaleString()}
-                      </div>
-                    </div>
-                    <span className="font-semibold">
-                      ฿{(Number(item.product.price) * item.quantity).toLocaleString()}
-                    </span>
+              {/* Order Summary */}
+              <div className="pt-6 border-t border-white/10">
+                <h3 className="text-white/60 text-sm uppercase tracking-wider mb-4">Order Summary</h3>
+                {getCartItems().map((item) => (
+                  <div key={item.product_id} className="flex justify-between text-white/80 mb-2">
+                    <span>{item.product_name} × {item.quantity}</span>
+                    <span>฿{item.total.toLocaleString()}</span>
                   </div>
                 ))}
-                <Separator />
-                <div className="flex justify-between font-bold pt-2">
-                  <span>Grand Total</span>
-                  <span className="text-primary">฿{grandTotal.toLocaleString()}</span>
+                <div className="flex justify-between text-white/60 mt-4 pt-4 border-t border-white/10">
+                  <span>Subtotal</span>
+                  <span>฿{subtotal.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-white/60">
+                  <span>VAT (7%)</span>
+                  <span>฿{vatAmount.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-amber-300 text-lg mt-2 pt-2 border-t border-white/10">
+                  <span>Total</span>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      value={customTotal !== null ? customTotal : calculatedTotal}
+                      onChange={(e) => setCustomTotal(parseFloat(e.target.value) || 0)}
+                      className="w-32 bg-white/5 border-b border-white/20 text-right px-2 py-1 rounded text-amber-300 outline-none focus:border-amber-400/50"
+                    />
+                  </div>
                 </div>
               </div>
+            </GlassCard>
+
+            <div className="flex justify-between mt-6">
+              <GlassButton onClick={() => setStep(1)} className="flex items-center gap-2">
+                <ArrowLeft className="w-4 h-4" /> Back
+              </GlassButton>
+              <GlassButton
+                variant="gold"
+                onClick={() => setStep(3)}
+                disabled={!canProceedStep2}
+                className="flex items-center gap-2"
+              >
+                Next <ArrowRight className="w-4 h-4" />
+              </GlassButton>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Step 3: Documents */}
+        {step === 3 && (
+          <motion.div
+            key="step3"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="max-w-xl mx-auto"
+          >
+            <h2 className="text-xl text-white/80 font-light tracking-wide mb-6">Upload Documents</h2>
+
+            <div className="space-y-6">
+              <GlassUpload
+                label="Citizen ID Card"
+                value={documents.citizen_id}
+                onUpload={(url) => setDocuments({ ...documents, citizen_id: url })}
+                accept="image/*"
+              />
+
+              <GlassUpload
+                label="Payment Slip"
+                value={documents.payment_slip}
+                onUpload={(url) => setDocuments({ ...documents, payment_slip: url })}
+                accept="image/*"
+              />
             </div>
 
-            {/* Right: Customer Info */}
-            <div className="space-y-4">
-              <h3 className="font-semibold flex items-center gap-2">
-                <User className="w-4 h-4" /> Customer Information
-              </h3>
-              <div className="space-y-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-medium">Doctor Name</label>
-                  <Input 
-                    placeholder="ex. Dr. Somchai" 
-                    value={customerInfo.doctorName}
-                    onChange={(e) => setCustomerInfo({...customerInfo, doctorName: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-medium">Doctor ID</label>
-                  <Input 
-                    placeholder="Medical License ID" 
-                    value={customerInfo.doctorId}
-                    onChange={(e) => setCustomerInfo({...customerInfo, doctorId: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-medium">Phone</label>
-                  <Input 
-                    placeholder="08x-xxx-xxxx" 
-                    value={customerInfo.phone}
-                    onChange={(e) => setCustomerInfo({...customerInfo, phone: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-medium">Address</label>
-                  <Textarea 
-                    placeholder="Shipping Address" 
-                    className="h-20 resize-none"
-                    value={customerInfo.address}
-                    onChange={(e) => setCustomerInfo({...customerInfo, address: e.target.value})}
-                  />
+            <div className="flex justify-between mt-8">
+              <GlassButton onClick={() => setStep(2)} className="flex items-center gap-2">
+                <ArrowLeft className="w-4 h-4" /> Back
+              </GlassButton>
+              <GlassButton
+                variant="gold"
+                onClick={() => setStep(4)}
+                className="flex items-center gap-2"
+              >
+                Review Order <ArrowRight className="w-4 h-4" />
+              </GlassButton>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Step 4: Review */}
+        {step === 4 && (
+          <motion.div
+            key="step4"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="max-w-2xl mx-auto"
+          >
+            <h2 className="text-xl text-white/80 font-light tracking-wide mb-6">Review Order</h2>
+
+            <GlassCard className="p-6" hover={false}>
+              {/* Customer Info */}
+              <div className="mb-6 pb-6 border-b border-white/10">
+                <h3 className="text-white/60 text-sm uppercase tracking-wider mb-4">Customer Information</h3>
+                <div className="grid grid-cols-2 gap-4 text-white/80">
+                  <div>
+                    <p className="text-white/40 text-sm">Name</p>
+                    <p>{customerInfo.name}</p>
+                  </div>
+                  <div>
+                    <p className="text-white/40 text-sm">Phone</p>
+                    <p>{customerInfo.phone}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <p className="text-white/40 text-sm">Address</p>
+                    <p>{customerInfo.address}</p>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
 
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setIsCheckoutOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleConfirmCheckout} className="bg-primary text-white">
-              Confirm Payment (Demo)
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+              {/* Order Items */}
+              <div className="mb-6 pb-6 border-b border-white/10">
+                <h3 className="text-white/60 text-sm uppercase tracking-wider mb-4">Order Items</h3>
+                {getCartItems().map((item) => (
+                  <div key={item.product_id} className="flex justify-between text-white/80 mb-2">
+                    <span>{item.product_name} × {item.quantity}</span>
+                    <span>฿{item.total.toLocaleString()}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Documents */}
+              <div className="mb-6 pb-6 border-b border-white/10">
+                <h3 className="text-white/60 text-sm uppercase tracking-wider mb-4">Documents</h3>
+                <div className="flex gap-4">
+                  {documents.citizen_id && (
+                    <div className="w-24 h-24 rounded-xl overflow-hidden border border-white/20">
+                      <img src={documents.citizen_id} alt="ID" className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                  {documents.payment_slip && (
+                    <div className="w-24 h-24 rounded-xl overflow-hidden border border-white/20">
+                      <img src={documents.payment_slip} alt="Slip" className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                  {!documents.citizen_id && !documents.payment_slip && (
+                    <p className="text-white/40">No documents uploaded</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Total */}
+              <div className="text-right">
+                <p className="text-white/40 text-sm">Total Amount</p>
+                <p className="text-3xl text-amber-300 font-light">฿{finalTotal.toLocaleString()}</p>
+              </div>
+            </GlassCard>
+
+            <div className="flex justify-between mt-6">
+              <GlassButton onClick={() => setStep(3)} className="flex items-center gap-2">
+                <ArrowLeft className="w-4 h-4" /> Back
+              </GlassButton>
+              <GlassButton
+                variant="gold"
+                onClick={handleSubmitOrder}
+                disabled={createOrderMutation.isPending}
+                className="flex items-center gap-2"
+              >
+                {createOrderMutation.isPending ? "Creating..." : "Submit Order"}
+              </GlassButton>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Step 5: Success */}
+        {step === 5 && (
+          <motion.div
+            key="step5"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="max-w-md mx-auto text-center py-12"
+          >
+            <div className="w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-green-500/30 to-green-600/20 border border-green-400/50 flex items-center justify-center mb-6">
+              <Check className="w-12 h-12 text-green-400" />
+            </div>
+            <h2 className="text-2xl text-white font-light tracking-wide mb-4">Order Created Successfully!</h2>
+            <p className="text-white/60 mb-8">Your order has been submitted and is now pending processing.</p>
+            <div className="flex flex-col gap-4">
+              <GlassButton
+                variant="gold"
+                onClick={() => {
+                  setStep(1);
+                  setCart({});
+                  setCustomerInfo({ name: "", phone: "", address: "" });
+                  setDocuments({ citizen_id: null, payment_slip: null });
+                  setCustomTotal(null);
+                }}
+                className="w-full"
+              >
+                Create Another Order
+              </GlassButton>
+              <GlassButton
+                onClick={() => window.location.href = createPageUrl("StaffDashboard")}
+                className="w-full"
+              >
+                Back to Dashboard
+              </GlassButton>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </DashboardLayout>
   );
 }
